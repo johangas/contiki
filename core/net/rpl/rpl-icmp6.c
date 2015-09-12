@@ -1,7 +1,3 @@
-/**
- * \addtogroup uip6
- * @{
- */
 /*
  * Copyright (c) 2010, Swedish Institute of Computer Science.
  * All rights reserved.
@@ -33,6 +29,7 @@
  * This file is part of the Contiki operating system.
  *
  */
+
 /**
  * \file
  *         ICMP6 I/O for RPL control messages.
@@ -41,6 +38,11 @@
  * Contributors: Niclas Finne <nfi@sics.se>, Joel Hoglund <joel@sics.se>,
  *               Mathieu Pouillot <m.pouillot@watteco.com>
  *               George Oikonomou <oikonomou@users.sourceforge.net> (multicast)
+ */
+
+/**
+ * \addtogroup uip6
+ * @{
  */
 
 #include "net/ip/tcpip.h"
@@ -59,11 +61,10 @@
 
 #include "net/ip/uip-debug.h"
 
-#if UIP_CONF_IPV6
 /*---------------------------------------------------------------------------*/
 #define RPL_DIO_GROUNDED                 0x80
 #define RPL_DIO_MOP_SHIFT                3
-#define RPL_DIO_MOP_MASK                 0x3c
+#define RPL_DIO_MOP_MASK                 0x38
 #define RPL_DIO_PREFERENCE_MASK          0x07
 
 #define UIP_IP_BUF       ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
@@ -174,7 +175,7 @@ dis_input(void)
       }
     }
   }
-  uip_len = 0;
+  uip_clear_buf();
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -255,7 +256,8 @@ dio_input(void)
       PRINTF(", ");
       PRINTLLADDR((uip_lladdr_t *)packetbuf_addr(PACKETBUF_ADDR_SENDER));
       PRINTF("\n");
-      return;
+
+      goto discard;
     }
   } else {
     PRINTF("RPL: Neighbor already in neighbor cache\n");
@@ -305,7 +307,7 @@ dio_input(void)
     if(len + i > buffer_length) {
       PRINTF("RPL: Invalid DIO packet\n");
       RPL_STAT(rpl_stats.malformed_msgs++);
-      return;
+      goto discard;
     }
 
     PRINTF("RPL: DIO option %u, length: %u\n", subopt_type, len - 2);
@@ -315,7 +317,7 @@ dio_input(void)
       if(len < 6) {
         PRINTF("RPL: Invalid DAG MC, len = %d\n", len);
 	RPL_STAT(rpl_stats.malformed_msgs++);
-        return;
+        goto discard;
       }
       dio.mc.type = buffer[i + 2];
       dio.mc.flags = buffer[i + 3] << 1;
@@ -341,14 +343,14 @@ dio_input(void)
         dio.mc.obj.energy.energy_est = buffer[i + 7];
       } else {
        PRINTF("RPL: Unhandled DAG MC type: %u\n", (unsigned)dio.mc.type);
-       return;
+       goto discard;
       }
       break;
     case RPL_OPTION_ROUTE_INFO:
       if(len < 9) {
         PRINTF("RPL: Invalid destination prefix option, len = %d\n", len);
 	RPL_STAT(rpl_stats.malformed_msgs++);
-        return;
+        goto discard;
       }
 
       /* The flags field includes the preference value. */
@@ -364,7 +366,7 @@ dio_input(void)
       } else {
         PRINTF("RPL: Invalid route info option, len = %d\n", len);
 	RPL_STAT(rpl_stats.malformed_msgs++);
-	return;
+        goto discard;
       }
 
       break;
@@ -372,7 +374,7 @@ dio_input(void)
       if(len != 16) {
         PRINTF("RPL: Invalid DAG configuration option, len = %d\n", len);
 	RPL_STAT(rpl_stats.malformed_msgs++);
-        return;
+        goto discard;
       }
 
       /* Path control field not yet implemented - at i + 2 */
@@ -394,7 +396,7 @@ dio_input(void)
       if(len != 32) {
         PRINTF("RPL: Invalid DAG prefix info, len != 32\n");
 	RPL_STAT(rpl_stats.malformed_msgs++);
-        return;
+        goto discard;
       }
       dio.prefix_info.length = buffer[i + 2];
       dio.prefix_info.flags = buffer[i + 3];
@@ -417,7 +419,8 @@ dio_input(void)
 
   rpl_process_dio(&from, &dio);
 
-  uip_len = 0;
+ discard:
+  uip_clear_buf();
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -465,8 +468,12 @@ dio_output(rpl_instance_t *instance, uip_ipaddr_t *uc_addr)
 
   buffer[pos++] = instance->dtsn_out;
 
-  /* always request new DAO to refresh route */
-  RPL_LOLLIPOP_INCREMENT(instance->dtsn_out);
+  if(uc_addr == NULL) {
+    /* Request new DAO to refresh route. We do not do this for unicast DIO
+     * in order to avoid DAO messages after a DIS-DIO update,
+     * or upon unicast DIO probing. */
+    RPL_LOLLIPOP_INCREMENT(instance->dtsn_out);
+  }
 
   /* reserved 2 bytes */
   buffer[pos++] = 0; /* flags */
@@ -617,7 +624,7 @@ dao_input(void)
   if(instance == NULL) {
     PRINTF("RPL: Ignoring a DAO for an unknown RPL instance(%u)\n",
            instance_id);
-    return;
+    goto discard;
   }
 
   lifetime = instance->default_lifetime;
@@ -632,7 +639,7 @@ dao_input(void)
   if(flags & RPL_DAO_D_FLAG) {
     if(memcmp(&dag->dag_id, &buffer[pos], sizeof(dag->dag_id))) {
       PRINTF("RPL: Ignoring a DAO for a DAG different from ours\n");
-      return;
+      goto discard;
     }
     pos += 16;
   }
@@ -653,7 +660,7 @@ dao_input(void)
           DAG_RANK(parent->rank, instance), DAG_RANK(dag->rank, instance));
       parent->rank = INFINITE_RANK;
       parent->flags |= RPL_PARENT_FLAG_UPDATED;
-      return;
+      goto discard;
     }
 
     /* If we get the DAO from our parent, we also have a loop. */
@@ -661,7 +668,7 @@ dao_input(void)
       PRINTF("RPL: Loop detected when receiving a unicast DAO from our parent\n");
       parent->rank = INFINITE_RANK;
       parent->flags |= RPL_PARENT_FLAG_UPDATED;
-      return;
+      goto discard;
     }
   }
 
@@ -738,7 +745,7 @@ dao_input(void)
         dao_ack_output(instance, &dao_sender_addr, sequence);
       }
     }
-    return;
+    goto discard;
   }
 
   PRINTF("RPL: adding DAO route\n");
@@ -760,23 +767,22 @@ dao_input(void)
       PRINTF(", ");
       PRINTLLADDR((uip_lladdr_t *)packetbuf_addr(PACKETBUF_ADDR_SENDER));
       PRINTF("\n");
-      return;
+      goto discard;
     }
   } else {
     PRINTF("RPL: Neighbor already in neighbor cache\n");
   }
 
-  rpl_lock_parent(parent);
-
   rep = rpl_add_route(dag, &prefix, prefixlen, &dao_sender_addr);
   if(rep == NULL) {
     RPL_STAT(rpl_stats.mem_overflows++);
     PRINTF("RPL: Could not add a route after receiving a DAO\n");
-    return;
+    goto discard;
   }
 
   rep->state.lifetime = RPL_LIFETIME(instance, lifetime);
   rep->state.learned_from = learned_from;
+  rep->state.nopath_received = 0;
 
 #if RPL_CONF_MULTICAST
 fwd_dao:
@@ -795,7 +801,9 @@ fwd_dao:
       dao_ack_output(instance, &dao_sender_addr, sequence);
     }
   }
-  uip_len = 0;
+
+ discard:
+  uip_clear_buf();
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -908,15 +916,11 @@ dao_ack_input(void)
 {
 #if DEBUG
   unsigned char *buffer;
-  uint8_t buffer_length;
-  uint8_t instance_id;
   uint8_t sequence;
   uint8_t status;
 
   buffer = UIP_ICMP_PAYLOAD;
-  buffer_length = uip_len - uip_l3_icmp_hdr_len;
 
-  instance_id = buffer[0];
   sequence = buffer[2];
   status = buffer[3];
 
@@ -925,7 +929,7 @@ dao_ack_input(void)
   PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
   PRINTF("\n");
 #endif /* DEBUG */
-  uip_len = 0;
+  uip_clear_buf();
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -956,6 +960,5 @@ rpl_icmp6_register_handlers()
   uip_icmp6_register_input_handler(&dao_ack_handler);
 }
 /*---------------------------------------------------------------------------*/
-#endif /* UIP_CONF_IPV6 */
 
 /** @}*/

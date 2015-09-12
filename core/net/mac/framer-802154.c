@@ -104,7 +104,7 @@ create_frame(int type, int do_create)
   /* Build the FCF. */
   params.fcf.frame_type = packetbuf_attr(PACKETBUF_ATTR_FRAME_TYPE);
   params.fcf.frame_pending = packetbuf_attr(PACKETBUF_ATTR_PENDING);
-  if(linkaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &linkaddr_null)) {
+  if(packetbuf_holds_broadcast()) {
     params.fcf.ack_required = 0;
   } else {
     params.fcf.ack_required = packetbuf_attr(PACKETBUF_ATTR_MAC_ACK);
@@ -159,11 +159,7 @@ create_frame(int type, int do_create)
   }
   params.dest_pid = mac_dst_pan_id;
 
-  /*
-   *  If the output address is NULL in the Rime buf, then it is broadcast
-   *  on the 802.15.4 network.
-   */
-  if(linkaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &linkaddr_null)) {
+  if(packetbuf_holds_broadcast()) {
     /* Broadcast requires short address mode. */
     params.fcf.dest_addr_mode = FRAME802154_SHORTADDRMODE;
     params.dest_addr[0] = 0xFF;
@@ -246,8 +242,10 @@ parse(void)
     }
     packetbuf_set_addr(PACKETBUF_ADDR_SENDER, (linkaddr_t *)&frame.src_addr);
     packetbuf_set_attr(PACKETBUF_ATTR_PENDING, frame.fcf.frame_pending);
-    /*    packetbuf_set_attr(PACKETBUF_ATTR_RELIABLE, frame.fcf.ack_required);*/
+    packetbuf_set_attr(PACKETBUF_ATTR_MAC_SEQNO, frame.seq);
+#if NETSTACK_CONF_WITH_RIME
     packetbuf_set_attr(PACKETBUF_ATTR_PACKET_ID, frame.seq);
+#endif
     
 #if LLSEC802154_SECURITY_LEVEL
     if(frame.fcf.security_enabled) {

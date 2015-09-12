@@ -106,7 +106,9 @@ send_packet(mac_callback_t sent, void *ptr)
   params.fcf.frame_type = FRAME802154_DATAFRAME;
   params.fcf.security_enabled = 0;
   params.fcf.frame_pending = 0;
+#if NETSTACK_CONF_WITH_RIME
   params.fcf.ack_required = packetbuf_attr(PACKETBUF_ATTR_RELIABLE);
+#endif
   params.fcf.panid_compression = 0;
 
   /* Insert IEEE 802.15.4 (2003) version bit. */
@@ -123,11 +125,7 @@ send_packet(mac_callback_t sent, void *ptr)
   params.fcf.src_addr_mode = FRAME802154_LONGADDRMODE;
   params.dest_pid = mac_dst_pan_id;
 
-  /*
-   *  If the output address is NULL in the Rime buf, then it is broadcast
-   *  on the 802.15.4 network.
-   */
-  if(linkaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &linkaddr_null)) {
+  if(packetbuf_holds_broadcast()) {
     /* Broadcast requires short address mode. */
     params.fcf.dest_addr_mode = FRAME802154_SHORTADDRMODE;
     params.dest_addr[0] = 0xFF;

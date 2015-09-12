@@ -1,15 +1,3 @@
-/**
- * \addtogroup uip6
- * @{
- */
-
-/**
- * \file
- *         ICMPv6 echo request and error messages (RFC 4443)
- * \author Julien Abeille <jabeille@cisco.com> 
- * \author Mathilde Durvy <mdurvy@cisco.com>
- */
-
 /*
  * Copyright (c) 2001-2003, Adam Dunkels.
  * All rights reserved.
@@ -42,6 +30,18 @@
  *
  */
 
+/**
+ * \addtogroup uip6
+ * @{
+ */
+
+/**
+ * \file
+ *    ICMPv6 (RFC 4443) implementation, with message and error handling
+ * \author Julien Abeille <jabeille@cisco.com> 
+ * \author Mathilde Durvy <mdurvy@cisco.com>
+ */
+
 #include <string.h>
 #include "net/ipv6/uip-ds6.h"
 #include "net/ipv6/uip-icmp6.h"
@@ -67,8 +67,6 @@
 #if UIP_CONF_IPV6_RPL
 #include "rpl/rpl.h"
 #endif /* UIP_CONF_IPV6_RPL */
-
-#if UIP_CONF_IPV6
 
 /** \brief temporary IP address */
 static uip_ipaddr_t tmp_ipaddr;
@@ -212,12 +210,12 @@ uip_icmp6_error_output(uint8_t type, uint8_t code, uint32_t param) {
  /* check if originating packet is not an ICMP error*/
   if (uip_ext_len) {
     if(UIP_EXT_BUF->next == UIP_PROTO_ICMP6 && UIP_ICMP_BUF->type < 128){
-      uip_len = 0;
+      uip_clear_buf();
       return;
     }
   } else {
     if(UIP_IP_BUF->proto == UIP_PROTO_ICMP6 && UIP_ICMP_BUF->type < 128){
-      uip_len = 0;
+      uip_clear_buf();
       return;
     }
   }
@@ -252,7 +250,7 @@ uip_icmp6_error_output(uint8_t type, uint8_t code, uint32_t param) {
   /* the source should not be unspecified nor multicast, the check for
      multicast is done in uip_process */
   if(uip_is_addr_unspecified(&UIP_IP_BUF->srcipaddr)){
-    uip_len = 0;
+    uip_clear_buf();
     return;
   }
 
@@ -262,7 +260,7 @@ uip_icmp6_error_output(uint8_t type, uint8_t code, uint32_t param) {
     if(type == ICMP6_PARAM_PROB && code == ICMP6_PARAMPROB_OPTION){
       uip_ds6_select_src(&UIP_IP_BUF->srcipaddr, &tmp_ipaddr);
     } else {
-      uip_len = 0;
+      uip_clear_buf();
       return;
     }
   } else {
@@ -387,7 +385,7 @@ echo_reply_input(void)
     }
   }
 
-  uip_len = 0;
+  uip_clear_buf();
   return;
 }
 /*---------------------------------------------------------------------------*/
@@ -421,4 +419,3 @@ uip_icmp6_init()
 }
 /*---------------------------------------------------------------------------*/
 /** @} */
-#endif /* UIP_CONF_IPV6 */

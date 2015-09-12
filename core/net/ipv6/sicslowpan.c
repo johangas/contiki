@@ -1,7 +1,3 @@
-/**
- * \addtogroup sicslowpan
- * @{
- */
 /*
  * Copyright (c) 2008, Swedish Institute of Computer Science.
  * All rights reserved.
@@ -33,6 +29,7 @@
  * This file is part of the Contiki operating system.
  *
  */
+
 /**
  * \file
  *         6lowpan implementation (RFC4944 and draft-ietf-6lowpan-hc-06)
@@ -44,6 +41,11 @@
  * \author Julien Abeille <jabeille@cisco.com>
  * \author Joakim Eriksson <joakime@sics.se>
  * \author Joel Hoglund <joel@sics.se>
+ */
+
+/**
+ * \addtogroup sicslowpan
+ * @{
  */
 
 /**
@@ -66,8 +68,6 @@
 #include "net/rime/rime.h"
 #include "net/ipv6/sicslowpan.h"
 #include "net/netstack.h"
-
-#if UIP_CONF_IPV6
 
 #include <stdio.h>
 
@@ -1336,11 +1336,6 @@ send_packet(linkaddr_t *dest)
   packetbuf_set_addr(PACKETBUF_ADDR_SENDER,(void*)&uip_lladdr);
 #endif
 
-  /* Force acknowledge from sender (test hardware autoacks) */
-#if SICSLOWPAN_CONF_ACK_ALL
-    packetbuf_set_attr(PACKETBUF_ATTR_RELIABLE, 1);
-#endif
-
   /* Provide a callback function to receive the result of
      a packet transmission. */
   NETSTACK_LLSEC.send(&packet_sent, NULL);
@@ -1388,6 +1383,7 @@ output(const uip_lladdr_t *localdest)
     set_packet_attrs();
   }
 
+#if PACKETBUF_WITH_PACKET_TYPE
 #define TCP_FIN 0x01
 #define TCP_ACK 0x10
 #define TCP_CTL 0x3f
@@ -1402,6 +1398,7 @@ output(const uip_lladdr_t *localdest)
     packetbuf_set_attr(PACKETBUF_ATTR_PACKET_TYPE,
                        PACKETBUF_ATTR_PACKET_TYPE_STREAM_END);
   }
+#endif
 
   /*
    * The destination address will be tagged to each outbound
@@ -1716,7 +1713,7 @@ input(void)
 
       sicslowpan_len = frag_size;
       reass_tag = frag_tag;
-      timer_set(&reass_timer, SICSLOWPAN_REASS_MAXAGE * CLOCK_SECOND / 16);
+      timer_set(&reass_timer, SICSLOWPAN_REASS_MAXAGE * CLOCK_SECOND);
       PRINTFI("sicslowpan input: INIT FRAGMENTATION (len %d, tag %d)\n",
              sicslowpan_len, reass_tag);
       linkaddr_copy(&frag_sender, packetbuf_addr(PACKETBUF_ADDR_SENDER));
@@ -1927,4 +1924,3 @@ const struct network_driver sicslowpan_driver = {
 };
 /*--------------------------------------------------------------------*/
 /** @} */
-#endif /* UIP_CONF_IPV6 */
