@@ -95,7 +95,8 @@ set_token(void *packet, const uint8_t *token, size_t token_len)
 }
 /*----------------------------------------------------------------------------*/
 coap_observee_t *
-coap_obs_add_observee(uip_ipaddr_t *addr, uint16_t port,
+coap_obs_add_observee(coap_context_t *coap_ctx,
+                      uip_ipaddr_t *addr, uint16_t port,
                       const uint8_t *token, size_t token_len, const char *url,
                       notification_callback_t notification_callback,
                       void *data)
@@ -103,10 +104,11 @@ coap_obs_add_observee(uip_ipaddr_t *addr, uint16_t port,
   coap_observee_t *o;
 
   /* Remove existing observe relationship, if any. */
-  coap_obs_remove_observee_by_url(addr, port, url);
+  coap_obs_remove_observee_by_url(coap_ctx, addr, port, url);
   o = memb_alloc(&obs_subjects_memb);
   if(o) {
     o->url = url;
+    o->coap_ctx = coap_ctx;
     uip_ipaddr_copy(&o->addr, addr);
     o->port = port;
     o->token_len = token_len;
@@ -150,7 +152,8 @@ coap_get_obs_subject_by_token(const uint8_t *token, size_t token_len)
 }
 /*----------------------------------------------------------------------------*/
 int
-coap_obs_remove_observee_by_token(uip_ipaddr_t *addr, uint16_t port,
+coap_obs_remove_observee_by_token(coap_context_t *coap_ctx,
+                                  uip_ipaddr_t *addr, uint16_t port,
                                   uint8_t *token, size_t token_len)
 {
   int removed = 0;
@@ -161,6 +164,7 @@ coap_obs_remove_observee_by_token(uip_ipaddr_t *addr, uint16_t port,
     PRINTF("Remove check Token 0x%02X%02X\n", token[0], token[1]);
     if(uip_ipaddr_cmp(&obs->addr, addr)
        && obs->port == port
+       && obs->coap_ctx == coap_ctx
        && obs->token_len == token_len
        && memcmp(obs->token, token, token_len) == 0) {
       coap_obs_remove_observee(obs);
@@ -171,7 +175,8 @@ coap_obs_remove_observee_by_token(uip_ipaddr_t *addr, uint16_t port,
 }
 /*----------------------------------------------------------------------------*/
 int
-coap_obs_remove_observee_by_url(uip_ipaddr_t *addr, uint16_t port,
+coap_obs_remove_observee_by_url(coap_context_t *coap_ctx,
+                                uip_ipaddr_t *addr, uint16_t port,
                                 const char *url)
 {
   int removed = 0;
@@ -182,6 +187,7 @@ coap_obs_remove_observee_by_url(uip_ipaddr_t *addr, uint16_t port,
     PRINTF("Remove check URL %s\n", url);
     if(uip_ipaddr_cmp(&obs->addr, addr)
        && obs->port == port
+       && obs->coap_ctx == coap_ctx
        && (obs->url == url || memcmp(obs->url, url, strlen(obs->url)) == 0)) {
       coap_obs_remove_observee(obs);
       removed++;
@@ -191,7 +197,8 @@ coap_obs_remove_observee_by_url(uip_ipaddr_t *addr, uint16_t port,
 }
 /*----------------------------------------------------------------------------*/
 static void
-simple_reply(coap_message_type_t type, uip_ip6addr_t *addr, uint16_t port,
+simple_reply(coap_message_type_t type, coap_context_t *coap_ctx,
+             uip_ip6addr_t *addr, uint16_t port,
              coap_packet_t *notification)
 {
   static coap_packet_t response[1];
@@ -199,7 +206,7 @@ simple_reply(coap_message_type_t type, uip_ip6addr_t *addr, uint16_t port,
 
   coap_init_message(response, type, NO_ERROR, notification->mid);
   len = coap_serialize_message(response, uip_appdata);
-  coap_send_message(addr, port, uip_appdata, len);
+  coap_send_message(coap_ctx, addr, port, uip_appdata, len);
 }
 /*----------------------------------------------------------------------------*/
 static coap_notification_flag_t
@@ -228,7 +235,8 @@ classify_notification(void *response, int first)
 }
 /*----------------------------------------------------------------------------*/
 void
-coap_handle_notification(uip_ipaddr_t *addr, uint16_t port,
+coap_handle_notification(coap_context_t *coap_ctx,
+                         uip_ipaddr_t *addr, uint16_t port,
                          coap_packet_t *notification)
 {
   coap_packet_t *pkt;
@@ -252,11 +260,11 @@ coap_handle_notification(uip_ipaddr_t *addr, uint16_t port,
   if(NULL == obs) {
     PRINTF("Error while handling coap observe notification: "
            "no matching token found\n");
-    simple_reply(COAP_TYPE_RST, addr, port, notification);
+    simple_reply(COAP_TYPE_RST, coap_ctx, addr, port, notification);
     return;
   }
   if(notification->type == COAP_TYPE_CON) {
-    simple_reply(COAP_TYPE_ACK, addr, port, notification);
+    simple_reply(COAP_TYPE_ACK, coap_ctx, addr, port, notification);
   }
   if(obs->notification_callback != NULL) {
     flag = classify_notification(notification, 0);
@@ -305,7 +313,8 @@ coap_generate_token(uint8_t **token_ptr)
 }
 /*----------------------------------------------------------------------------*/
 coap_observee_t *
-coap_obs_request_registration(uip_ipaddr_t *addr, uint16_t port, char *uri,
+coap_obs_request_registration(coap_context_t *coap_ctx,
+                              uip_ipaddr_t *addr, uint16_t port, char *uri,
                               notification_callback_t notification_callback,
                               void *data)
 {
@@ -321,9 +330,10 @@ coap_obs_request_registration(uip_ipaddr_t *addr, uint16_t port, char *uri,
   coap_set_header_observe(request, 0);
   token_len = coap_generate_token(&token);
   set_token(request, token, token_len);
-  t = coap_new_transaction(request->mid, addr, port);
+  t = coap_new_transaction(request->mid, coap_ctx, addr, port);
   if(t) {
-    obs = coap_obs_add_observee(addr, port, (uint8_t *)token, token_len, uri,
+    obs = coap_obs_add_observee(coap_ctx, addr, port,
+                                (uint8_t *)token, token_len, uri,
                                 notification_callback, data);
     if(obs) {
       t->callback = handle_obs_registration_response;

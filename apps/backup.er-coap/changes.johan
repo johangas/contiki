@@ -1,0 +1,4 @@
+added compilation options for DTLS as done in calypso, thus removing DTLS imeplementation from application
+
+in er-coap-observe-cremoved support for observer due to missing context and port <<<<<<<<<<<< needs fix
+

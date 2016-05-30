@@ -42,7 +42,8 @@ static void res_post_put_handler(void *request, void *response, uint8_t *buffer,
 	const uint8_t *payload;
   	REST.get_request_payload(request, &payload);
 	char str[4];
-	for(int i = 0; i < codesize; i++){
+        int i = 0;
+	for(i = 0; i < codesize; i++){
 		printf("%s, %d\n", payload, allowed[i]);
 		sprintf(str, "%d", allowed[i]);
 		
@@ -66,6 +67,7 @@ static void res_get_handler(void *request, void *response, uint8_t *buffer, uint
 	//get must be safe so only return value of the door
 	REST.set_header_content_type(response, REST.type.TEXT_PLAIN);
 	REST.set_response_payload(response, buffer, snprintf((char *)buffer, preferred_size, "%d", leds_get()));
+	printf("Get, returned %d\n", leds_get());
 }
 
 static void res_event_handler() {

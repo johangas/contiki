@@ -79,6 +79,7 @@ typedef void (*notification_callback_t)(coap_observee_t *subject,
 
 struct coap_observee_s {
   coap_observee_t *next;        /* for LIST */
+  coap_context_t *coap_ctx;
   uip_ipaddr_t addr;
   uint16_t port;
   const char *url;
@@ -90,7 +91,8 @@ struct coap_observee_s {
 };
 
 /*----------------------------------------------------------------------------*/
-coap_observee_t *coap_obs_add_observee(uip_ipaddr_t *addr, uint16_t port,
+coap_observee_t *coap_obs_add_observee(coap_context_t *coap_ctx,
+                                       uip_ipaddr_t *addr, uint16_t port,
                                        const uint8_t *token, size_t token_len,
                                        const char *url,
                                        notification_callback_t
@@ -101,16 +103,20 @@ void coap_obs_remove_observee(coap_observee_t *o);
 coap_observee_t *coap_obs_get_observee_by_token(const uint8_t *token,
                                                 size_t token_len);
 
-int coap_obs_remove_observee_by_token(uip_ipaddr_t *addr, uint16_t port,
+int coap_obs_remove_observee_by_token(coap_context_t *coap_ctx,
+                                      uip_ipaddr_t *addr, uint16_t port,
                                       uint8_t *token, size_t token_len);
 
-int coap_obs_remove_observee_by_url(uip_ipaddr_t *addr, uint16_t port,
+int coap_obs_remove_observee_by_url(coap_context_t *coap_ctx,
+                                    uip_ipaddr_t *addr, uint16_t port,
                                     const char *url);
 
-void coap_handle_notification(uip_ipaddr_t *, uint16_t port,
+void coap_handle_notification(coap_context_t *coap_ctx,
+                              uip_ipaddr_t *addr, uint16_t port,
                               coap_packet_t *notification);
 
-coap_observee_t *coap_obs_request_registration(uip_ipaddr_t *addr,
+coap_observee_t *coap_obs_request_registration(coap_context_t *coap_ctx,
+                                               uip_ipaddr_t *addr,
                                                uint16_t port, char *uri,
                                                notification_callback_t
                                                notification_callback,

@@ -19,6 +19,10 @@ Written by Johan Gasslander, master thesis worker at SICS ICT Stockholm
 #include "uip.h"
 #include "er-coap-observe-client.h"
 
+#if WITH_IPSO
+#include "ipso-objects.h"
+#endif
+
 //Defines
 #define COAP_PORT 	UIP_HTONS(COAP_DEFAULT_PORT)
 #define REMOTE_PORT     UIP_HTONS(COAP_DEFAULT_PORT)
@@ -53,17 +57,18 @@ void stoptimer(){
 
 static void response(void *response){
 	//TODO: what is this do
-	const uint8_t *payload = NULL;
-	coap_get_payload(response, &payload);
+		//USELESS
+	/*const uint8_t *payload = NULL;
 	stoptimer();
 	//stop performance counter
-	if(*payload != '0')
-		leds_set(*payload);
-	else {
-		leds_set(0);
+	int len = coap_get_payload(response, &payload);
+	if(len){
+		//leds_set(*payload);
+	} else {
+		//leds_set(0);
 	}
 	//print round trip time	
-	printf("Notification from server received: %d Response time was %ld ms.\n", *payload, time);
+	printf("Response: Notification from server received: %.*s Response time was %ld ms.\n", len, payload, time);*/
 }
 
 static void callback(coap_observee_t *obst, void *notification, coap_notification_flag_t flag){
@@ -75,13 +80,13 @@ static void callback(coap_observee_t *obst, void *notification, coap_notificatio
 			coap_get_payload(notification, &payload);
 			stoptimer();
 			//stop performance counter
-			if(*payload != '0')
+			if(payload)
 				leds_set(*payload);
 			else {
 				leds_set(0);
 			}
 			//print round trip time	
-			printf("Notification from server received: %d Response time was %ld ms.\n", *payload, time);
+			printf("Callback: Notification from server received: %d Response time was %ld ms.\n", *payload, time*10); //Usually takes 810-900 
 			
 		}
 	}
@@ -102,13 +107,16 @@ PROCESS_THREAD(door_process, ev, data){
 	uiplib_ipaddrconv(ADDR, authority_addr);
 	printf("Server addr: %s\n", ADDR);
 	coap_init_engine();
+#if WITH_IPSO
+	ipso_objects_init();
+#endif
 	SENSORS_ACTIVATE(button_3);
 	//clock_init();
 	while(1){
 		PROCESS_WAIT_EVENT();
 		//observe authority and open door (set LED)
 		if (data == &button_3 && button_3.value(BUTTON_SENSOR_VALUE_STATE) == 0){
-			coap_obs_request_registration(authority_addr, COAP_PORT, DOOR_OBS_URI, callback, NULL);
+			coap_obs_request_registration(NULL, authority_addr, COAP_PORT, DOOR_OBS_URI, callback, NULL);
 			printf("Observing...");
 		}
 	}
@@ -135,7 +143,6 @@ PROCESS_THREAD(keypad_process, ev, data){
 			coap_set_header_uri_path(request, "/doors/door");
 			coap_set_payload(request, (uint8_t *) "4711", 4);
 			COAP_BLOCKING_REQUEST(&authority_addr[0], REMOTE_PORT, request, response);
-			//start performance counter
 			
 		}
 		if (data == &button_2 && button_2.value(BUTTON_SENSOR_VALUE_STATE) == 0) {

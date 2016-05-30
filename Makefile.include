@@ -1,5 +1,7 @@
 # -*- makefile -*-
 
+#NRF52_JLINK_PATH=/home/johan/Downloads/JLink_Linux_V512d_x86_64
+
 ifndef CONTIKI
   ${error CONTIKI not defined! You must specify where Contiki resides}
 endif

@@ -45,6 +45,7 @@
 #include "er-coap-observe.h"
 #include "er-coap-separate.h"
 #include "er-coap-observe-client.h"
+#include "er-coap-context.h"
 
 #define SERVER_LISTEN_PORT      UIP_HTONS(COAP_SERVER_PORT)
 
@@ -52,6 +53,7 @@ typedef coap_packet_t rest_request_t;
 typedef coap_packet_t rest_response_t;
 
 void coap_init_engine(void);
+int coap_engine_receive(coap_context_t *coap_context);
 
 /*---------------------------------------------------------------------------*/
 /*- Client Part -------------------------------------------------------------*/
@@ -68,6 +70,7 @@ typedef void (*blocking_response_handler)(void *response);
 
 PT_THREAD(coap_blocking_request
             (struct request_state_t *state, process_event_t ev,
+             coap_context_t *coap_ctx,
             uip_ipaddr_t *remote_ipaddr, uint16_t remote_port,
             coap_packet_t *request,
             blocking_response_handler request_callback));
@@ -76,7 +79,7 @@ PT_THREAD(coap_blocking_request
   { \
     static struct request_state_t request_state; \
     PT_SPAWN(process_pt, &request_state.pt, \
-             coap_blocking_request(&request_state, ev, \
+             coap_blocking_request(&request_state, ev, COAP_CONTEXT_NONE, \
                                    server_addr, server_port, \
                                    request, chunk_handler) \
              ); \

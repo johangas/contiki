@@ -3,43 +3,34 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the copyright holder nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
+ * modification, are permitted provided that the following conditions are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *    3. Neither the name of the copyright holders nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS
+ *    This product includes software developed by Yanzi Networks AB.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
-/**
- * \addtogroup oma-lwm2m
- * @{
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
  *
- */
-
-/**
- * \file
- *         Implementation of the Contiki OMA LWM2M TLV
- * \author
- *         Joakim Eriksson <joakime@sics.se>
- *         Niclas Finne <nfi@sics.se>
+ * Author: Joakim Eriksson, joakime@sics.se
+ *
+ *
  */
 
 #include <string.h>
@@ -55,20 +46,6 @@
 #endif
 
 /*---------------------------------------------------------------------------*/
-static inline uint8_t
-get_len_type(const oma_tlv_t *tlv)
-{
-  if(tlv->length < 8) {
-    return 0;
-  } else if(tlv->length < 256) {
-    return 1;
-  } else if(tlv->length < 0x10000) {
-    return 2;
-  } else {
-    return 3;
-  }
-}
-/*---------------------------------------------------------------------------*/
 size_t
 oma_tlv_read(oma_tlv_t *tlv, const uint8_t *buffer, size_t len)
 {
@@ -78,14 +55,13 @@ oma_tlv_read(oma_tlv_t *tlv, const uint8_t *buffer, size_t len)
 
   tlv->type = (buffer[0] >> 6) & 3;
   len_type = (buffer[0] >> 3) & 3;
-  len_pos = 1 + (((buffer[0] & (1 << 5)) != 0) ? 2 : 1);
+  len_pos = 1 + (buffer[0] >> 5) != 0 ? 2 : 1;
 
   tlv->id = buffer[1];
   /* if len_pos is larger than two it means that there is more ID to read */
   if(len_pos > 2) {
-    tlv->id = (tlv->id << 8) + buffer[2];
+    tlv->id = (tlv->id << 8) | buffer[2];
   }
-
   if(len_type == 0) {
     tlv_len = buffer[0] & 7;
   } else {
@@ -104,11 +80,12 @@ oma_tlv_read(oma_tlv_t *tlv, const uint8_t *buffer, size_t len)
 }
 /*---------------------------------------------------------------------------*/
 size_t
-oma_tlv_get_size(const oma_tlv_t *tlv)
+oma_tlv_size(oma_tlv_t *tlv)
 {
   size_t size;
   /* first hdr + len size */
-  size = 1 + get_len_type(tlv);
+  size = 1 + ((tlv->length < 8) ? 0 : (tlv->length < 256) ? 1 :
+	      (tlv->length < 0x10000) ? 2 : 3);
   /* id size */
   size += (tlv->id > 255) ? 2 : 1;
 
@@ -118,13 +95,14 @@ oma_tlv_get_size(const oma_tlv_t *tlv)
 }
 /*---------------------------------------------------------------------------*/
 size_t
-oma_tlv_write(const oma_tlv_t *tlv, uint8_t *buffer, size_t len)
+oma_tlv_write(oma_tlv_t *tlv, uint8_t *buffer, size_t len)
 {
   int pos;
   uint8_t len_type;
 
   /* len type is the same as number of bytes required for length */
-  len_type = get_len_type(tlv);
+  len_type = (tlv->length < 8) ? 0 : (tlv->length < 256) ? 1 :
+    (tlv->length < 0x10000) ? 2 : 3;
   pos = 1 + len_type;
   /* ensure that we do not write too much */
   if(len < tlv->length + pos) {
@@ -133,10 +111,8 @@ oma_tlv_write(const oma_tlv_t *tlv, uint8_t *buffer, size_t len)
   }
 
   /* first type byte in TLV header */
-  buffer[0] = (tlv->type << 6) |
-    (tlv->id > 255 ? (1 << 5) : 0) |
-    (len_type << 3) |
-    (len_type == 0 ? tlv->length : 0);
+  buffer[0] = (tlv->type << 6) | (tlv->id > 255 ? (1 << 5) : 0) |
+    (len_type << 3) | (len_type == 0 ? tlv->length : 0);
 
   pos = 1;
   /* The ID */
@@ -145,20 +121,14 @@ oma_tlv_write(const oma_tlv_t *tlv, uint8_t *buffer, size_t len)
   }
   buffer[pos++] = tlv->id & 0xff;
   /* Add length if needed - unrolled loop ? */
-  if(len_type > 2) {
-    buffer[pos++] = (tlv->length >> 16) & 0xff;
-  }
-  if(len_type > 1) {
-    buffer[pos++] = (tlv->length >> 8) & 0xff;
-  }
-  if(len_type > 0) {
-    buffer[pos++] = tlv->length & 0xff;
-  }
+  if(len_type > 2) buffer[pos++] = (tlv->length >> 16) & 0xff;
+  if(len_type > 1) buffer[pos++] = (tlv->length >> 8) & 0xff;
+  if(len_type > 0) buffer[pos++] = tlv->length & 0xff;
 
   /* finally add the value */
   memcpy(&buffer[pos], tlv->value, tlv->length);
 
-  if(DEBUG) {
+  if(1) {
     int i;
     PRINTF("TLV:");
     for(i = 0; i < pos + tlv->length; i++) {
@@ -200,7 +170,7 @@ oma_tlv_write_int32(int16_t id, int32_t value, uint8_t *buffer, size_t len)
   tlvlen = i;
 
   /* export INT as TLV */
-  PRINTF("len: %zu\n", tlvlen);
+  PRINTF("len: %u\n", (unsigned int) tlvlen);
   tlv.type = OMA_TLV_TYPE_RESOURCE;
   tlv.length = tlvlen;
   tlv.value = &buf[3 - (tlvlen - 1)];
@@ -211,7 +181,7 @@ oma_tlv_write_int32(int16_t id, int32_t value, uint8_t *buffer, size_t len)
 /* convert fixpoint 32-bit to a IEEE Float in the byte array*/
 size_t
 oma_tlv_write_float32(int16_t id, int32_t value, int bits,
-                      uint8_t *buffer, size_t len)
+		      uint8_t *buffer, size_t len)
 {
   int i;
   int e = 0;
@@ -221,9 +191,7 @@ oma_tlv_write_float32(int16_t id, int32_t value, int bits,
   oma_tlv_t tlv;
 
   v = value;
-  if(v < 0) {
-    v = -v;
-  }
+  if(v < 0) v = -v;
 
   while(v > 1) {
     val = (val >> 1);
@@ -260,7 +228,7 @@ oma_tlv_write_float32(int16_t id, int32_t value, int bits,
 /*---------------------------------------------------------------------------*/
 /* convert float to fixpoint */
 size_t
-oma_tlv_float32_to_fix(const oma_tlv_t *tlv, int32_t *value, int bits)
+oma_tlv_float32_to_fix(oma_tlv_t *tlv, int32_t *value, int bits)
 {
   /* TLV needs to be 4 bytes */
   int e, i;
@@ -293,4 +261,3 @@ oma_tlv_float32_to_fix(const oma_tlv_t *tlv, int32_t *value, int bits)
   return 4;
 }
 /*---------------------------------------------------------------------------*/
-/** @} */

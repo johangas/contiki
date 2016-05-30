@@ -59,8 +59,9 @@ LIST(observers_list);
 /*- Internal API ------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
 static coap_observer_t *
-add_observer(uip_ipaddr_t *addr, uint16_t port, const uint8_t *token,
-             size_t token_len, const char *uri, int uri_len)
+coap_add_observer(coap_context_t *coap_ctx, uip_ipaddr_t *addr, uint16_t port,
+                  const uint8_t *token, size_t token_len,
+                  const char *uri, int uri_len)
 {
   /* Remove existing observe relationship, if any. */
   coap_remove_observer_by_uri(addr, port, uri);
@@ -68,7 +69,8 @@ add_observer(uip_ipaddr_t *addr, uint16_t port, const uint8_t *token,
   coap_observer_t *o = memb_alloc(&observers_memb);
 
   if(o) {
-    int max = sizeof(o->url) - 1;
+    /* o->url = uri; */
+    int max = sizeof(o->url);
     if(max > uri_len) {
       max = uri_len;
     }
@@ -76,6 +78,7 @@ add_observer(uip_ipaddr_t *addr, uint16_t port, const uint8_t *token,
     o->url[max] = 0;
     uip_ipaddr_copy(&o->addr, addr);
     o->port = port;
+    o->coap_ctx = coap_ctx;
     o->token_len = token_len;
     memcpy(o->token, token, token_len);
     o->last_mid = 0;
@@ -141,7 +144,7 @@ coap_remove_observer_by_token(uip_ipaddr_t *addr, uint16_t port,
 }
 /*---------------------------------------------------------------------------*/
 int
-coap_remove_observer_by_uri(uip_ipaddr_t *addr, uint16_t port,
+coap_remove_observer_by_uri(const uip_ipaddr_t *addr, uint16_t port,
                             const char *uri)
 {
   int removed = 0;
@@ -161,7 +164,8 @@ coap_remove_observer_by_uri(uip_ipaddr_t *addr, uint16_t port,
 }
 /*---------------------------------------------------------------------------*/
 int
-coap_remove_observer_by_mid(uip_ipaddr_t *addr, uint16_t port, uint16_t mid)
+coap_remove_observer_by_mid(coap_context_t *coap_ctx,
+                            uip_ipaddr_t *addr, uint16_t port, uint16_t mid)
 {
   int removed = 0;
   coap_observer_t *obs = NULL;
@@ -170,6 +174,7 @@ coap_remove_observer_by_mid(uip_ipaddr_t *addr, uint16_t port, uint16_t mid)
       obs = obs->next) {
     PRINTF("Remove check MID %u\n", mid);
     if(uip_ipaddr_cmp(&obs->addr, addr) && obs->port == port
+       && obs->coap_ctx == coap_ctx
        && obs->last_mid == mid) {
       coap_remove_observer(obs);
       removed++;
@@ -186,18 +191,18 @@ coap_notify_observers(resource_t *resource)
   coap_notify_observers_sub(resource, NULL);
 }
 void
-coap_notify_observers_sub(resource_t *resource, const char *subpath)
+coap_notify_observers_sub(resource_t *resource, char *subpath)
 {
   /* build notification */
   coap_packet_t notification[1]; /* this way the packet can be treated as pointer as usual */
   coap_packet_t request[1]; /* this way the packet can be treated as pointer as usual */
   coap_observer_t *obs = NULL;
-  int url_len, obs_url_len;
+  int url_len = 0;
   char url[COAP_OBSERVER_URL_LEN];
 
   url_len = strlen(resource->url);
   strncpy(url, resource->url, COAP_OBSERVER_URL_LEN - 1);
-  if(url_len < COAP_OBSERVER_URL_LEN - 1 && subpath != NULL) {
+  if(strlen(url) < COAP_OBSERVER_URL_LEN && subpath != NULL) {
     strncpy(&url[url_len], subpath, COAP_OBSERVER_URL_LEN - url_len - 1);
   }
   /* Ensure url is null terminated because strncpy does not guarantee this */
@@ -211,23 +216,22 @@ coap_notify_observers_sub(resource_t *resource, const char *subpath)
   coap_set_header_uri_path(request, url);
 
   /* iterate over observers */
-  url_len = strlen(url);
   for(obs = (coap_observer_t *)list_head(observers_list); obs;
       obs = obs->next) {
-    obs_url_len = strlen(obs->url);
+    url_len = strlen(obs->url);
 
     /* Do a match based on the parent/sub-resource match so that it is
        possible to do parent-node observe */
-    if((obs_url_len == url_len
-        || (obs_url_len > url_len
+    if((url_len == strlen(url)
+        || (url_len > strlen(url)
             && (resource->flags & HAS_SUB_RESOURCES)
-            && obs->url[url_len] == '/'))
-       && strncmp(url, obs->url, url_len) == 0) {
+            && obs->url[strlen(url)] == '/'))
+       && strncmp(url, obs->url, strlen(url)) == 0) {
       coap_transaction_t *transaction = NULL;
 
       /*TODO implement special transaction for CON, sharing the same buffer to allow for more observers */
-
-      if((transaction = coap_new_transaction(coap_get_mid(), &obs->addr, obs->port))) {
+      if((transaction = coap_new_transaction(coap_get_mid(), obs->coap_ctx,
+                                             &obs->addr, obs->port))) {
         if(obs->obs_counter % COAP_OBSERVE_REFRESH_INTERVAL == 0) {
           PRINTF("           Force Confirmable for\n");
           notification->type = COAP_TYPE_CON;
@@ -266,14 +270,18 @@ coap_observe_handler(resource_t *resource, void *request, void *response)
 {
   coap_packet_t *const coap_req = (coap_packet_t *)request;
   coap_packet_t *const coap_res = (coap_packet_t *)response;
+  coap_context_t *coap_ctx = coap_get_context(request);
   coap_observer_t * obs;
+
+  /* static char content[16]; */
 
   if(coap_req->code == COAP_GET && coap_res->code < 128) { /* GET request and response without error code */
     if(IS_OPTION(coap_req, COAP_OPTION_OBSERVE)) {
       if(coap_req->observe == 0) {
-        obs = add_observer(&UIP_IP_BUF->srcipaddr, UIP_UDP_BUF->srcport,
-                           coap_req->token, coap_req->token_len,
-                           coap_req->uri_path, coap_req->uri_path_len);
+        obs = coap_add_observer(coap_ctx,
+                                &UIP_IP_BUF->srcipaddr, UIP_UDP_BUF->srcport,
+                                coap_req->token, coap_req->token_len,
+                                coap_req->uri_path, coap_req->uri_path_len);
        if(obs) {
           coap_set_header_observe(coap_res, (obs->obs_counter)++);
           /*
@@ -281,14 +289,13 @@ coap_observe_handler(resource_t *resource, void *request, void *response)
            * A subscription should return the same representation as a normal GET.
            * Uncomment if you want an information about the avaiable observers.
            */
-#if 0
-          static char content[16];
-          coap_set_payload(coap_res,
-                           content,
-                           snprintf(content, sizeof(content), "Added %u/%u",
-                                    list_length(observers_list),
-                                    COAP_MAX_OBSERVERS));
-#endif
+          /*
+           * coap_set_payload(coap_res,
+           *                  content,
+           *                  snprintf(content, sizeof(content), "Added %u/%u",
+           *                           list_length(observers_list),
+           *                           COAP_MAX_OBSERVERS));
+           */
         } else {
           coap_res->code = SERVICE_UNAVAILABLE_5_03;
           coap_set_payload(coap_res, "TooManyObservers", 16);

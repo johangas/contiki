@@ -160,7 +160,7 @@ well_known_core_get_handler(void *request, void *response, uint8_t *buffer,
 #endif
 
     PRINTF("res: /%s (%p)\npos: s%zu, o%ld, b%zu\n", resource->url, resource,
-           strpos, (long)*offset, bufpos);
+           strpos, (unsigned long) *offset, bufpos);
 
     if(strpos > 0) {
       ADD_CHAR_IF_POSSIBLE(',');

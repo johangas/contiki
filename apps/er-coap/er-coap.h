@@ -43,10 +43,11 @@
 #include "contiki-net.h"
 #include "er-coap-constants.h"
 #include "er-coap-conf.h"
+#include "er-coap-context.h"
 
 /* sanity check for configured values */
 #define COAP_MAX_PACKET_SIZE  (COAP_MAX_HEADER_SIZE + REST_MAX_CHUNK_SIZE)
-#if COAP_MAX_PACKET_SIZE > (UIP_BUFSIZE - UIP_IPH_LEN - UIP_UDPH_LEN)
+#if COAP_MAX_PACKET_SIZE > (UIP_BUFSIZE - UIP_LLH_LEN - UIP_IPH_LEN - UIP_UDPH_LEN)
 #error "UIP_CONF_BUFFER_SIZE too small for REST_MAX_CHUNK_SIZE"
 #endif
 
@@ -128,6 +129,8 @@ typedef struct {
   const char *uri_query;
   uint8_t if_none_match;
 
+  coap_context_t *coap_ctx;
+
   uint16_t payload_len;
   uint8_t *payload;
 } coap_packet_t;
@@ -135,13 +138,13 @@ typedef struct {
 /* option format serialization */
 #define COAP_SERIALIZE_INT_OPTION(number, field, text) \
   if(IS_OPTION(coap_pkt, number)) { \
-    PRINTF(text " [%u]\n", (unsigned int)coap_pkt->field);		\
+    PRINTF(text " [%u]\n", (unsigned int) coap_pkt->field);		\
     option += coap_serialize_int_option(number, current_number, option, coap_pkt->field); \
     current_number = number; \
   }
 #define COAP_SERIALIZE_BYTE_OPTION(number, field, text) \
   if(IS_OPTION(coap_pkt, number)) { \
-    PRINTF(text " %u [0x%02X%02X%02X%02X%02X%02X%02X%02X]\n", (unsigned int)coap_pkt->field##_len, \
+    PRINTF(text " %u [0x%02X%02X%02X%02X%02X%02X%02X%02X]\n", (unsigned int) coap_pkt->field##_len, \
            coap_pkt->field[0], \
            coap_pkt->field[1], \
            coap_pkt->field[2], \
@@ -156,7 +159,7 @@ typedef struct {
   }
 #define COAP_SERIALIZE_STRING_OPTION(number, field, splitter, text) \
   if(IS_OPTION(coap_pkt, number)) { \
-    PRINTF(text " [%.*s]\n", (int)coap_pkt->field##_len, coap_pkt->field); \
+    PRINTF(text " [%.*s]\n", (int) coap_pkt->field##_len, coap_pkt->field); \
     option += coap_serialize_array_option(number, current_number, option, (uint8_t *)coap_pkt->field, coap_pkt->field##_len, splitter); \
     current_number = number; \
   }
@@ -167,7 +170,7 @@ typedef struct {
     uint32_t block = coap_pkt->field##_num << 4; \
     if(coap_pkt->field##_more) { block |= 0x8; } \
     block |= 0xF & coap_log_2(coap_pkt->field##_size / 16); \
-    PRINTF(text " encoded: 0x%lX\n", (unsigned long)block);		\
+    PRINTF(text " encoded: 0x%lX\n", (unsigned long)block);             \
     option += coap_serialize_int_option(number, current_number, option, block); \
     current_number = number; \
   }
@@ -182,7 +185,9 @@ uint16_t coap_get_mid(void);
 void coap_init_message(void *packet, coap_message_type_t type, uint8_t code,
                        uint16_t mid);
 size_t coap_serialize_message(void *packet, uint8_t *buffer);
-void coap_send_message(uip_ipaddr_t *addr, uint16_t port, uint8_t *data,
+void coap_send_message(coap_context_t *coap_ctx,
+                       uip_ipaddr_t *addr, uint16_t port,
+                       const uint8_t *data,
                        uint16_t length);
 coap_status_t coap_parse_message(void *request, uint8_t *data,
                                  uint16_t data_len);
@@ -192,6 +197,10 @@ int coap_get_query_variable(void *packet, const char *name,
 int coap_get_post_variable(void *packet, const char *name,
                            const char **output);
 
+/*---------------------------------------------------------------------------*/
+int coap_is_secure(void *packet);
+coap_context_t *coap_get_context(void *packet);
+int coap_set_context(void *packet, coap_context_t *coap_ctx);
 /*---------------------------------------------------------------------------*/
 
 int coap_set_status_code(void *packet, unsigned int code);

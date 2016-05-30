@@ -58,6 +58,8 @@ PROCESS(rest_engine_process, "REST Engine");
 /*---------------------------------------------------------------------------*/
 LIST(restful_services);
 LIST(restful_periodic_services);
+/* avoid initializing twice */
+static uint8_t initialized = 0;
 /*---------------------------------------------------------------------------*/
 /*- REST Engine API ---------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -70,15 +72,12 @@ LIST(restful_periodic_services);
 void
 rest_init_engine(void)
 {
-  /* avoid initializing twice */
-  static uint8_t initialized = 0;
-
   if(initialized) {
     PRINTF("REST engine process already running - double initialization?\n");
     return;
   }
-  initialized = 1;
 
+  initialized = 1;
   list_init(restful_services);
 
   REST.set_service_callback(rest_invoke_restful_service);
@@ -133,19 +132,18 @@ rest_invoke_restful_service(void *request, void *response, uint8_t *buffer,
 
   resource_t *resource = NULL;
   const char *url = NULL;
-  int url_len, res_url_len;
+  int url_len;
 
-  url_len = REST.get_url(request, &url);
   for(resource = (resource_t *)list_head(restful_services);
       resource; resource = resource->next) {
 
     /* if the web service handles that kind of requests and urls matches */
-    res_url_len = strlen(resource->url);
-    if((url_len == res_url_len
-        || (url_len > res_url_len
+    url_len = REST.get_url(request, &url);
+    if((url_len == strlen(resource->url)
+        || (url_len > strlen(resource->url)
             && (resource->flags & HAS_SUB_RESOURCES)
-            && url[res_url_len] == '/'))
-       && strncmp(resource->url, url, res_url_len) == 0) {
+            && url[strlen(resource->url)] == '/'))
+       && strncmp(resource->url, url, strlen(resource->url)) == 0) {
       found = 1;
       rest_resource_flags_t method = REST.get_method_type(request);
 

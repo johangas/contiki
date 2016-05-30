@@ -68,7 +68,8 @@ coap_register_as_transaction_handler()
   transaction_handler_process = PROCESS_CURRENT();
 }
 coap_transaction_t *
-coap_new_transaction(uint16_t mid, uip_ipaddr_t *addr, uint16_t port)
+coap_new_transaction(uint16_t mid, coap_context_t *coap_ctx,
+                     uip_ipaddr_t *addr, uint16_t port)
 {
   coap_transaction_t *t = memb_alloc(&transactions_memb);
 
@@ -79,6 +80,7 @@ coap_new_transaction(uint16_t mid, uip_ipaddr_t *addr, uint16_t port)
     /* save client address */
     uip_ipaddr_copy(&t->addr, addr);
     t->port = port;
+    t->coap_ctx = coap_ctx;
 
     list_add(transactions_list, t); /* list itself makes sure same element is not added twice */
   }
@@ -91,7 +93,7 @@ coap_send_transaction(coap_transaction_t *t)
 {
   PRINTF("Sending transaction %u\n", t->mid);
 
-  coap_send_message(&t->addr, t->port, t->packet, t->packet_len);
+  coap_send_message(t->coap_ctx, &t->addr, t->port, t->packet, t->packet_len);
 
   if(COAP_TYPE_CON ==
      ((COAP_HEADER_TYPE_MASK & t->packet[0]) >> COAP_HEADER_TYPE_POSITION)) {

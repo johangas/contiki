@@ -18,6 +18,10 @@ Written by Johan Gasslander, master thesis worker at SICS ICT Stockholm.
 #include "er-coap-observe-client.h"
 #include "dev/leds.h"
 
+#if WITH_IPSO
+#include "ipso-objects.h"
+#endif
+
 //Process handling
 PROCESS(authority_process, "authority process");
 
@@ -33,7 +37,9 @@ AUTOSTART_PROCESSES(
 PROCESS_THREAD(authority_process, ev, data){
 	PROCESS_BEGIN();
 	rest_init_engine();
-
+#if WITH_IPSO
+	ipso_objects_init();
+#endif
   	rest_activate_resource(&res_door, "doors/door");
 	while(1){
 		PROCESS_WAIT_EVENT();

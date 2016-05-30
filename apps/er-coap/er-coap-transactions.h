@@ -58,6 +58,7 @@ typedef struct coap_transaction {
 
   uip_ipaddr_t addr;
   uint16_t port;
+  coap_context_t *coap_ctx;
 
   restful_response_handler callback;
   void *callback_data;
@@ -69,8 +70,8 @@ typedef struct coap_transaction {
 
 void coap_register_as_transaction_handler();
 
-coap_transaction_t *coap_new_transaction(uint16_t mid, uip_ipaddr_t *addr,
-                                         uint16_t port);
+coap_transaction_t *coap_new_transaction(uint16_t mid, coap_context_t *coap_ctx,
+                                         uip_ipaddr_t *addr, uint16_t port);
 void coap_send_transaction(coap_transaction_t *t);
 void coap_clear_transaction(coap_transaction_t *t);
 coap_transaction_t *coap_get_transaction_by_mid(uint16_t mid);

@@ -1,51 +1,36 @@
 /*
- * Copyright (c) 2015, Yanzi Networks AB.
+ * Copyright (c) 2015, SICS Swedish ICE AB.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the copyright holder nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
+ * modification, are permitted provided that the following conditions are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *    3. Neither the name of the copyright holders nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS
+ *    This product includes software developed by Yanzi Networks AB.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
-/**
- * \addtogroup apps
- * @{
- */
-
-/**
- * \defgroup oma-lwm2m An implementation of OMA LWM2M
- * @{
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
  *
- * This application is an implementation of OMA Lightweight M2M.
- */
-
-/**
- * \file
- *         Header file for the Contiki OMA LWM2M object API
- * \author
- *         Joakim Eriksson <joakime@sics.se>
- *         Niclas Finne <nfi@sics.se>
+ * Author: Joakim Eriksson, joakime@sics.se
+ *         Niclas Finne, nfi@sics.se
+ *
  */
 
 #ifndef LWM2M_OBJECT_H_
@@ -103,23 +88,23 @@ typedef struct lwm2m_context {
 
 /* LWM2M format writer for the various formats supported */
 typedef struct lwm2m_writer {
-  size_t (* write_int)(const lwm2m_context_t *ctx, uint8_t *outbuf, size_t outlen, int32_t value);
-  size_t (* write_string)(const lwm2m_context_t *ctx, uint8_t *outbuf, size_t outlen, const char *value, size_t strlen);
-  size_t (* write_float32fix)(const lwm2m_context_t *ctx, uint8_t *outbuf, size_t outlen, int32_t value, int bits);
-  size_t (* write_boolean)(const lwm2m_context_t *ctx, uint8_t *outbuf, size_t outlen, int value);
+  size_t (* write_int)(lwm2m_context_t *ctx, uint8_t *outbuf, size_t outlen, int32_t value);
+  size_t (* write_string)(lwm2m_context_t *ctx, uint8_t *outbuf, size_t outlen, const char *value, size_t strlen);
+  size_t (* write_float32fix)(lwm2m_context_t *ctx, uint8_t *outbuf, size_t outlen, int32_t value, int bits);
+  size_t (* write_boolean)(lwm2m_context_t *ctx, uint8_t *outbuf, size_t outlen, int value);
 } lwm2m_writer_t;
 
 typedef struct lwm2m_reader {
-  size_t (* read_int)(const lwm2m_context_t *ctx, const uint8_t *inbuf, size_t len, int32_t *value);
-  size_t (* read_string)(const lwm2m_context_t *ctx, const uint8_t *inbuf, size_t len, uint8_t *value, size_t strlen);
-  size_t (* read_float32fix)(const lwm2m_context_t *ctx, const uint8_t *inbuf, size_t len, int32_t *value, int bits);
-  size_t (* read_boolean)(const lwm2m_context_t *ctx, const uint8_t *inbuf, size_t len, int *value);
+  size_t (* read_int)(lwm2m_context_t *ctx, const uint8_t *inbuf, size_t len, int32_t *value);
+  size_t (* read_string)(lwm2m_context_t *ctx, const uint8_t *inbuf, size_t len, uint8_t *value, size_t strlen);
+  size_t (* read_float32fix)(lwm2m_context_t *ctx, const uint8_t *inbuf, size_t len, int32_t *value, int bits);
+  size_t (* read_boolean)(lwm2m_context_t *ctx, const uint8_t *inbuf, size_t len, int *value);
 } lwm2m_reader_t;
 
 typedef struct lwm2m_value_callback {
   int (* read)(lwm2m_context_t *ctx, uint8_t *outbuf, size_t outlen);
   int (* write)(lwm2m_context_t *ctx,
-                const uint8_t *buffer, size_t len,
+		const uint8_t *buffer, size_t len,
                 uint8_t *outbuf, size_t outlen);
   int (* exec)(lwm2m_context_t *ctx, const uint8_t *arg, size_t len,
                uint8_t *outbuf, size_t outlen);
@@ -198,7 +183,7 @@ typedef struct lwm2m_resource {
   } value;
 } lwm2m_resource_t;
 
-#define LWM2M_INSTANCE_FLAG_USED 1
+#define INSTANCE_FLAG_USED 1
 
 typedef struct lwm2m_instance {
   uint16_t id;
@@ -218,13 +203,13 @@ typedef struct lwm2m_object {
 #define LWM2M_RESOURCES(name, ...)                              \
   static const lwm2m_resource_t name[] = { __VA_ARGS__ }
 
-#define LWM2M_RESOURCE_STRING(id, s)                                    \
+#define LWM2M_RESOURCE_STRING(id, s)					\
   { id, LWM2M_RESOURCE_TYPE_STR_VALUE, .value.string.len = sizeof(s) - 1, .value.string.value = (uint8_t *) s }
 
 #define LWM2M_RESOURCE_STRING_VAR(id, s, l, v)                           \
   { id, LWM2M_RESOURCE_TYPE_STR_VARIABLE, .value.stringvar.size = (s), .value.stringvar.len = (l), .value.stringvar.var = (v) }
 
-#define LWM2M_RESOURCE_STRING_VAR_ARR(id, c, s, l, v)                   \
+#define LWM2M_RESOURCE_STRING_VAR_ARR(id, c, s, l, v)			\
   { id, LWM2M_RESOURCE_TYPE_STR_VARIABLE_ARRAY, .value.stringvararr.count = c, .value.stringvararr.size = s, .value.stringvararr.len = l, .value.stringvararr.var = (uint8_t *) v }
 
 #define LWM2M_RESOURCE_INTEGER(id, v)                                   \
@@ -258,7 +243,7 @@ typedef struct lwm2m_object {
   { id, LWM2M_RESOURCE_TYPE_CALLBACK, .value.callback = __VA_ARGS__ }
 
 #define LWM2M_INSTANCE(id, resources)                           \
-  { id, sizeof(resources)/sizeof(lwm2m_resource_t), LWM2M_INSTANCE_FLAG_USED, resources }
+  { id, sizeof(resources)/sizeof(lwm2m_resource_t), INSTANCE_FLAG_USED, resources }
 
 #define LWM2M_INSTANCE_UNUSED(id, resources)                      \
   { id, sizeof(resources)/sizeof(lwm2m_resource_t), 0, resources }
@@ -353,7 +338,3 @@ lwm2m_object_notify_observers(const lwm2m_object_t *object, char *path)
 #include "lwm2m-engine.h"
 
 #endif /* LWM2M_OBJECT_H_ */
-/**
- * @}
- * @}
- */

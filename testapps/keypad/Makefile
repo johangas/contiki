@@ -21,6 +21,11 @@ SMALL=1
 # REST Engine shall use Erbium CoAP implementation
 APPS += er-coap
 APPS += rest-engine
+APPS += tinydtls/aes tinydtls/sha2 tinydtls/ecc tinydtls
+
+ifdef WITH_IPSO
+APPS += ipso-objects
+endif
 
 CONTIKI = ../..
 include $(CONTIKI)/Makefile.include
