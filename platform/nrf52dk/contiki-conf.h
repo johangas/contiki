@@ -108,7 +108,7 @@
 #endif
 
 /* ND and Routing */
-#define UIP_CONF_ROUTER                      0 /**< BLE master role, which allows for routing, isn't supported. */
+#define UIP_CONF_ROUTER                      1 /**< BLE master role. > */
 #define UIP_CONF_ND6_SEND_NA                 1
 #define UIP_CONF_IP_FORWARD                  0 /**< No packet forwarding. */
 

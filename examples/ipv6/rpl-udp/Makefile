@@ -13,6 +13,6 @@ endif
 ifdef PERIOD
 CFLAGS+=-DPERIOD=$(PERIOD)
 endif
-
+UIP_CONF_ROUTER = 1
 CONTIKI_WITH_IPV6 = 1
 include $(CONTIKI)/Makefile.include

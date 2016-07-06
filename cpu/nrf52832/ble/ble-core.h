@@ -41,6 +41,7 @@
  *         Basic BLE functions.
  * \author
  *         Wojciech Bober <wojciech.bober@nordicsemi.no>
+ *         Johan Gasslander <johangas@kth.se>
  */
 #ifndef DEV_BLE_H_
 #define DEV_BLE_H_
@@ -51,6 +52,7 @@ void ble_stack_init(void);
 void ble_advertising_init(const char *name);
 void ble_advertising_start(void);
 void ble_get_mac(uint8_t addr[8]);
+uint8_t* ble_scan_start();
 
 #endif /* DEV_BLE_H_ */
 

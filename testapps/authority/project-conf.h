@@ -40,6 +40,7 @@
  *      Erbium (Er) example project configuration.
  * \author
  *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
+ *	Johan Gasslander <johangas@kth.se>
  */
 
 #ifndef __PROJECT_ERBIUM_CONF_H__
@@ -52,7 +53,6 @@
 /* Increase rpl-border-router IP-buffer when using more than 64. */
 #undef REST_MAX_CHUNK_SIZE
 #define REST_MAX_CHUNK_SIZE            256
-
 
 /* Estimate your header size, especially when using Proxy-Uri. */
 /*

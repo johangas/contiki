@@ -29,6 +29,19 @@
  * This file is part of the Contiki operating system.
  */
 
+/**
+ * \addtogroup nrf52dk-examples Demo projects for nRF52 DK
+ * @{
+ *
+ * \defgroup nrf52dk-coap-demo CoAP demo for nRF52dk
+ * @{
+ *
+ * \file
+ *      Erbium (Er) example project configuration.
+ * \author
+ *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
+ *	Johan Gasslander <johangas@kth.se>
+ */
 
 #ifndef __PROJECT_ERBIUM_CONF_H__
 #define __PROJECT_ERBIUM_CONF_H__
@@ -39,7 +52,7 @@
 
 /* Increase rpl-border-router IP-buffer when using more than 64. */
 #undef REST_MAX_CHUNK_SIZE
-#define REST_MAX_CHUNK_SIZE            48
+#define REST_MAX_CHUNK_SIZE            256
 
 /* Estimate your header size, especially when using Proxy-Uri. */
 /*

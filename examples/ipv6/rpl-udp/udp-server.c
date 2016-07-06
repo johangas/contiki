@@ -98,8 +98,7 @@ print_local_addresses(void)
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(udp_server_process, ev, data)
 {
-  uip_ipaddr_t ipaddr;
-  struct uip_ds6_addr *root_if;
+  
 
   PROCESS_BEGIN();
 
@@ -110,6 +109,8 @@ PROCESS_THREAD(udp_server_process, ev, data)
   PRINTF("UDP server started\n");
 
 #if UIP_CONF_ROUTER
+uip_ipaddr_t ipaddr;
+  struct uip_ds6_addr *root_if;
 /* The choice of server address determines its 6LoPAN header compression.
  * Obviously the choice made here must also be selected in udp-client.c.
  *

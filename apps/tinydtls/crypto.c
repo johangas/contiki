@@ -139,6 +139,8 @@ dtls_handshake_parameters_t *dtls_handshake_new()
     /* FIXME: we use the default SHA256 here, might need to support other 
               hash functions as well */
     dtls_hash_init(&handshake->hs_state.hs_hash);
+    if (&handshake->hs_state.hs_hash == NULL)
+	printf("hash init failed\n");
   }
   return handshake;
 }

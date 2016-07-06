@@ -33,7 +33,7 @@ ETAGS = /bin/false
 
 prefix = /usr/local
 exec_prefix = ${prefix}
-abs_builddir = /home/johan/thesis/tinydtls/netcontiki-dev-master-m3-scalability/apps/tinydtls
+abs_builddir = /home/johan/thesis/tinydtls/contiki/apps/tinydtls
 top_builddir = .
 libdir = ${exec_prefix}/lib
 includedir = ${prefix}/include/tinydtls
@@ -48,8 +48,8 @@ SOURCES += debug.c
 endif
 SUB_OBJECTS:=aes/rijndael.o  ecc/ecc.o sha2/sha2.o
 OBJECTS:= $(patsubst %.c, %.o, $(SOURCES)) $(SUB_OBJECTS)
-HEADERS:=dtls.h hmac.h debug.h dtls_config.h uthash.h numeric.h crypto.h global.h ccm.h \
- netq.h t_list.h alert.h utlist.h prng.h peer.h state.h dtls_time.h session.h \
+HEADERS:=dtls.h hmac.h debug.h dtls_config.h numeric.h crypto.h global.h ccm.h \
+ netq.h t_list.h alert.h prng.h peer.h state.h dtls_time.h session.h \
  tinydtls.h
 CFLAGS:=-Wall -pedantic -std=c99 
 CPPFLAGS:= -DDTLSv12 -DWITH_SHA256 -DDTLS_CHECK_CONTENTTYPE
@@ -139,4 +139,3 @@ GITIGNOREDS:= core \*~ \*.[oa] \*.gz \*.cap \*.pcap Makefile \
 
 .gitignore:
 	echo $(GITIGNOREDS) | sed 's/ /\n/g' > $@
-

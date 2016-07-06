@@ -34,8 +34,6 @@
 #include "tinydtls.h"
 
 #ifndef WITH_CONTIKI
-#include "uthash.h"
-#include "utlist.h"
 
 /* We define list structures and utility functions to be compatible
  * with Contiki list structures. The Contiki list API is part of the
@@ -97,20 +95,70 @@ list_head(list_t list) {
   return *list;
 }
 
-static inline void 
+static inline void
 list_remove(list_t list, void *item) {
-  LL_DELETE(*(struct list **)list, (struct list *)item);
+  struct list *l, *r;
+
+  if(*list == NULL) {
+    return;
+  }
+
+  r = NULL;
+  for(l = *list; l != NULL; l = l->next) {
+    if(l == item) {
+      if(r == NULL) {
+	/* First on list */
+	*list = l->next;
+      } else {
+	/* Not first on list */
+	r->next = l->next;
+      }
+      l->next = NULL;
+      return;
+    }
+    r = l;
+  }
 }
 
-static inline void 
+static inline void *
+list_tail(list_t list)
+{
+  struct list *l;
+
+  if(*list == NULL) {
+    return NULL;
+  }
+
+  for(l = *list; l->next != NULL; l = l->next);
+
+  return l;
+}
+
+static inline void
 list_add(list_t list, void *item) {
+  struct list *l;
+
+  /* Make sure not to add the same element twice */
   list_remove(list, item);
-  LL_APPEND(*(struct list **)list, (struct list *)item);
+
+  ((struct list *)item)->next = NULL;
+
+  l = list_tail(list);
+
+  if(l == NULL) {
+    *list = item;
+  } else {
+    l->next = item;
+  }
 }
 
-static inline void 
+static inline void
 list_push(list_t list, void *item) {
-  LL_PREPEND(*(struct list **)list, (struct list *)item);
+  /* Make sure not to add the same element twice */
+  list_remove(list, item);
+
+  ((struct list *)item)->next = *list;
+  *list = item;
 }
 
 static inline void *
@@ -144,4 +192,3 @@ list_item_next(void *item)
 #endif /* WITH_CONTIKI */
 
 #endif /* _DTLS_LIST_H_ */
-

@@ -38,11 +38,6 @@
 #include "state.h"
 #include "peer.h"
 
-#ifndef WITH_CONTIKI
-#include "uthash.h"
-#include "t_list.h"
-#endif /* WITH_CONTIKI */
-
 #include "alert.h"
 #include "crypto.h"
 #include "hmac.h"
@@ -224,11 +219,9 @@ typedef struct dtls_context_t {
   unsigned char cookie_secret[DTLS_COOKIE_SECRET_LENGTH];
   clock_time_t cookie_secret_age; /**< the time the secret has been generated */
 
-#ifndef WITH_CONTIKI
-  dtls_peer_t *peers;		/**< peer hash map */
-#else /* WITH_CONTIKI */
   LIST_STRUCT(peers);
 
+#ifdef WITH_CONTIKI
   struct etimer retransmit_timer; /**< fires when the next packet must be sent */
 #endif /* WITH_CONTIKI */
 
@@ -433,12 +426,6 @@ dtls_peer_t *dtls_get_peer(const dtls_context_t *context,
  * This software is under the <a 
  * href="http://www.opensource.org/licenses/mit-license.php">MIT License</a>.
  * 
- * @subsection uthash UTHash
- *
- * This library uses <a href="http://uthash.sourceforge.net/">uthash</a> to manage
- * its peers (not used for Contiki). @b uthash uses the <b>BSD revised license</b>, see
- * <a href="http://uthash.sourceforge.net/license.html">http://uthash.sourceforge.net/license.html</a>.
- *
  * @subsection sha256 Aaron D. Gifford's SHA256 Implementation
  *
  * tinyDTLS provides HMAC-SHA256 with BSD-licensed code from Aaron D. Gifford, 

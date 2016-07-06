@@ -39,7 +39,7 @@
 #include "er-coap-engine.h"
 #include <string.h>
 
-#define DEBUG DEBUG_NONE
+#define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
 
 #ifdef WITH_DTLS
@@ -186,7 +186,7 @@ coap_context_new(uint16_t port)
     return NULL;
   }
   udp_bind(ctx->conn, port);
-
+  PRINTF("coap-context: opened new UDP conn\n");
   /* initialize context */
   ctx->dtls_context = dtls_new_context(ctx);
   if(ctx->dtls_context == NULL) {
@@ -266,8 +266,9 @@ coap_context_send_message(coap_context_t *coap_ctx,
   sn.port = port;
   sn.size = sizeof(sn.addr) + sizeof(sn.port);
   sn.ifindex = 1;
-
+#if WITH_DTLS
   res = dtls_write(coap_ctx->dtls_context, &sn, (uint8 *)data, length);
+#endif
   if(res < 0) {
     PRINTF("coap-context: Failed to send with dtls (%d)\n", res);
   } else if (res == 0) {
@@ -285,6 +286,7 @@ coap_context_init(void)
 
   process_start(&coap_context_process, NULL);
 }
+//int connected=0;
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(coap_context_process, ev, data)
 {
@@ -313,6 +315,9 @@ PROCESS_THREAD(coap_context_process, ev, data)
           PRINTF("coap-context: got message from ");
           PRINT6ADDR(&session.addr);
           PRINTF(":%d %u bytes\n", uip_ntohs(session.port), uip_datalen());
+	  /*if(!connected){
+		connected=coap_context_connect(coap_ctx, &session.addr, session.port);
+	  }*/
 
           dtls_handle_message(coap_ctx->dtls_context, &session,
                               uip_appdata, uip_datalen());

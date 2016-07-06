@@ -54,7 +54,7 @@
 #include "dtls.h"
 #endif
 
-#define DEBUG DEBUG_NONE
+#define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
 
 #ifndef PRODUCT_STRING
@@ -105,7 +105,7 @@ get_psk_info(struct dtls_context_t *ctx, const session_t *session,
   int sid_len, key_len;
   const lwm2m_instance_t *instance;
   const lwm2m_resource_t *rsc;
-
+ 
   if(security_mode != LWM2M_SECURITY_MODE_PSK) {
     /* Wrong mode */
     return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
@@ -126,6 +126,7 @@ get_psk_info(struct dtls_context_t *ctx, const session_t *session,
     PRINTF("lwm2m.psk: no client pki found\n");
     return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
   }
+  printf("PSK ID %s\n", sid);
 
   switch(type) {
   case DTLS_PSK_IDENTITY:
@@ -270,7 +271,8 @@ PROCESS_THREAD(lwm2m_rd_client, ev, data)
   PROCESS_BEGIN();
 
   /* hardcoded BS server for now */
-  uip_ip6addr(&bs_server_ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0x1);
+  uip_ip6addr(&bs_server_ipaddr, 0x2001, 0x6b0, 0x3a, 0x1, 0x3e97, 0xeff, 0xfed8, 0x8440);
+//2001:6b0:3a:1:3e97:eff:fed8:8440
 
 #if WITH_DTLS
   coap_context = coap_context_new(uip_htons(COAP_DEFAULT_SECURE_PORT));
@@ -281,11 +283,10 @@ PROCESS_THREAD(lwm2m_rd_client, ev, data)
 
   printf("RD Client started with endpoint '%s'\n", endpoint);
 
-  etimer_set(&et, 15 * CLOCK_SECOND);
+  etimer_set(&et, 1 * CLOCK_SECOND);
 
   while(1) {
     PROCESS_YIELD();
-
     if(etimer_expired(&et)) {
       if(UIP_CONF_IPV6_RPL && rpl_get_any_dag() == NULL) {
         /* Wait until for a network to join */
@@ -481,7 +482,7 @@ PROCESS_THREAD(lwm2m_rd_client, ev, data)
 #endif /* WITH_DTLS */
       }
       /* for now only register once...   registered = 0; */
-      etimer_set(&et, 15 * CLOCK_SECOND);
+      etimer_set(&et, 2 * CLOCK_SECOND);
     }
   }
   PROCESS_END();
@@ -541,8 +542,9 @@ lwm2m_engine_init(void)
   snprintf(endpoint, sizeof(endpoint), "?ep=%s", client);
 
 #endif /* LWM2M_ENGINE_CLIENT_ENDPOINT_NAME */
-
+  
   rest_init_engine();
+  printf("process start\n");
   process_start(&lwm2m_rd_client, NULL);
 }
 /*---------------------------------------------------------------------------*/
@@ -780,9 +782,12 @@ lwm2m_engine_handler(const lwm2m_object_t *object, void *request,
 	  if(rsc != NULL) {
 	    /* write the value to the resource */
 	    if(lwm2m_object_is_resource_string(rsc)) {
+	      //printf("stringlen: %d, string %s", (int)tlv.length, tlv.value);
 	      PRINTF("  new string value for /%d/%d/%d = %.*s\n",
 		     context.object_id, context.object_instance_id,
 		     context.resource_id, (int)tlv.length, tlv.value);
+		//if(tlv.length == 12)
+		//	tlv.value = (uint8_t *) "IPSO_Interop";
               lwm2m_object_set_resource_string(rsc, &context,
                                                tlv.length, tlv.value);
 	    } else if(lwm2m_object_is_resource_int(rsc)) {

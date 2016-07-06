@@ -31,14 +31,12 @@
 #include "tinydtls.h"
 #include "dtls_config.h"
 #include "dtls_time.h"
-#include <clock.h>
 
 #ifdef WITH_CONTIKI
 clock_time_t dtls_clock_offset;
 
 void
 dtls_clock_init(void) {
-  //clock_init();
   dtls_clock_offset = clock_time();
 }
 

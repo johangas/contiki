@@ -299,7 +299,7 @@ PROCESS_THREAD(udp_server_process, ev, data)
 {
   static int connected = 0;
   static session_t dst;
-
+  static struct etimer et;
   PROCESS_BEGIN();
 
   dtls_init();
@@ -311,17 +311,26 @@ PROCESS_THREAD(udp_server_process, ev, data)
     dtls_emerg("cannot create context\n");
     PROCESS_EXIT();
   }
+  etimer_set(&et, CLOCK_SECOND*5);
 
   while(1) {
     PROCESS_YIELD();
     if(ev == tcpip_event) {
       dtls_handle_read(dtls_context);
-    } else if (ev == serial_line_event_message) {
-      register size_t len = min(strlen(data), sizeof(buf) - buflen);
+    } else if (ev == PROCESS_EVENT_TIMER) {
+      etimer_restart(&et);
+      if (buflen < sizeof(buf) - 11) {
+      memcpy(buf + buflen, "1234567890", 10);
+      buflen += 10;
+      if (buflen < sizeof(buf) - 1)
+	buf[buflen++] = '\n';
+      }
+      /*register size_t len = min(strlen(data), sizeof(buf) - buflen);
       memcpy(buf + buflen, data, len);
       buflen += len;
       if (buflen < sizeof(buf) - 1)
-	buf[buflen++] = '\n';	/* serial event does not contain LF */
+	buf[buflen++] = '\n';	 serial event does not contain LF */
+
     }
 
     if (buflen) {

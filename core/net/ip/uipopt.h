@@ -588,7 +588,7 @@ void uip_log(char *msg);
  * Do we support 6lowpan fragmentation
  */
 #ifndef SICSLOWPAN_CONF_FRAG  
-#define SICSLOWPAN_CONF_FRAG  0
+#define SICSLOWPAN_CONF_FRAG  1
 #endif
 
 /** @} */

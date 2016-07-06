@@ -262,7 +262,7 @@ coap_engine_receive(coap_context_t *coap_ctx)
 	/* if observe notification */
         if((message->type == COAP_TYPE_CON || message->type == COAP_TYPE_NON)
               && IS_OPTION(message, COAP_OPTION_OBSERVE)) {
-          PRINTF("Observe [%u]\n", message->observe);
+          PRINTF("Observe [%ld]\n", message->observe);
           coap_handle_notification(coap_ctx, &UIP_IP_BUF->srcipaddr,
                                    UIP_UDP_BUF->srcport, message);
         }
@@ -309,7 +309,9 @@ coap_engine_receive(coap_context_t *coap_ctx)
 void
 coap_init_engine(void)
 {
+  #if WITH_DTLS
   coap_context_init();
+  #endif
   process_start(&coap_engine, NULL);
 }
 /*---------------------------------------------------------------------------*/

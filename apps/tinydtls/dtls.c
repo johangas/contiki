@@ -33,10 +33,6 @@
 #ifdef HAVE_ASSERT_H
 #include <assert.h>
 #endif
-#ifndef WITH_CONTIKI
-#include <stdlib.h>
-#include "uthash.h"
-#endif /* WITH_CONTIKI */
 
 #include "debug.h"
 #include "numeric.h"
@@ -60,15 +56,6 @@
 #define dtls_get_epoch(H) dtls_uint16_to_int((H)->epoch)
 #define dtls_get_sequence_number(H) dtls_uint48_to_ulong((H)->sequence_number)
 #define dtls_get_fragment_length(H) dtls_uint24_to_int((H)->fragment_length)
-
-#ifndef WITH_CONTIKI
-#define HASH_FIND_PEER(head,sess,out)		\
-  HASH_FIND(hh,head,sess,sizeof(session_t),out)
-#define HASH_ADD_PEER(head,sess,add)		\
-  HASH_ADD(hh,head,sess,sizeof(session_t),add)
-#define HASH_DEL_PEER(head,delptr)		\
-  HASH_DELETE(hh,head,delptr)
-#endif /* WITH_CONTIKI */
 
 #define DTLS_RH_LENGTH sizeof(dtls_record_header_t)
 #define DTLS_HS_LENGTH sizeof(dtls_handshake_header_t)
@@ -212,24 +199,16 @@ dtls_peer_t *
 dtls_get_peer(const dtls_context_t *ctx, const session_t *session) {
   dtls_peer_t *p = NULL;
 
-#ifndef WITH_CONTIKI
-  HASH_FIND_PEER(ctx->peers, session, p);
-#else /* WITH_CONTIKI */
   for (p = list_head(ctx->peers); p; p = list_item_next(p))
     if (dtls_session_equals(&p->session, session))
       return p;
-#endif /* WITH_CONTIKI */
-  
+
   return p;
 }
 
 static void
 dtls_add_peer(dtls_context_t *ctx, dtls_peer_t *peer) {
-#ifndef WITH_CONTIKI
-  HASH_ADD_PEER(ctx->peers, session, peer);
-#else /* WITH_CONTIKI */
   list_add(ctx->peers, peer);
-#endif /* WITH_CONTIKI */
 }
 
 int
@@ -1510,12 +1489,7 @@ static void dtls_destroy_peer(dtls_context_t *ctx, dtls_peer_t *peer, int unlink
   if (peer->state != DTLS_STATE_CLOSED && peer->state != DTLS_STATE_CLOSING)
     dtls_close(ctx, &peer->session);
   if (unlink) {
-#ifndef WITH_CONTIKI
-    HASH_DEL_PEER(ctx->peers, peer);
-#else /* WITH_CONTIKI */
     list_remove(ctx->peers, peer);
-#endif /* WITH_CONTIKI */
-
     dtls_dsrv_log_addr(DTLS_LOG_DEBUG, "removed peer", &peer->session);
   }
   dtls_free_peer(peer);
@@ -3516,11 +3490,9 @@ handle_alert(dtls_context_t *ctx, dtls_peer_t *peer,
   if (data[0] == DTLS_ALERT_LEVEL_FATAL || data[1] == DTLS_ALERT_CLOSE_NOTIFY) {
     dtls_alert("%d invalidate peer\n", data[1]);
     
-#ifndef WITH_CONTIKI
-    HASH_DEL_PEER(ctx->peers, peer);
-#else /* WITH_CONTIKI */
     list_remove(ctx->peers, peer);
 
+#ifdef WITH_CONTIKI
 #ifndef NDEBUG
     PRINTF("removed peer [");
     PRINT6ADDR(&peer->session.addr);
@@ -3740,15 +3712,16 @@ dtls_context_t *
 dtls_new_context(void *app_data) {
   dtls_context_t *c;
   dtls_tick_t now;
+
 #ifndef WITH_CONTIKI
   FILE *urandom = fopen("/dev/urandom", "r");
   unsigned char buf[sizeof(unsigned long)];
 #endif /* WITH_CONTIKI */
-
+  printf("dtls: new context\n");
   dtls_ticks(&now);
 #ifdef WITH_CONTIKI
   /* FIXME: need something better to init PRNG here */
-  dtls_prng_init(now);
+  srand(now);
 #else /* WITH_CONTIKI */
   if (!urandom) {
     dtls_emerg("cannot initialize PRNG\n");
@@ -3806,18 +3779,8 @@ dtls_free_context(dtls_context_t *ctx) {
     return;
   }
 
-#ifndef WITH_CONTIKI
-  dtls_peer_t *tmp;
-
-  if (ctx->peers) {
-    HASH_ITER(hh, ctx->peers, p, tmp) {
-      dtls_destroy_peer(ctx, p, 1);
-    }
-  }
-#else /* WITH_CONTIKI */
   for (p = list_head(ctx->peers); p; p = list_item_next(p))
     dtls_destroy_peer(ctx, p, 1);
-#endif /* WITH_CONTIKI */
 
   free_context(ctx);
 }

@@ -53,21 +53,30 @@ void ipso_power_control_init(void);
 void
 ipso_objects_init()
 {
+printf("ipso objects init\n");
   /* initialize any relevant object for the IPSO Objects */
   lwm2m_engine_init();
+printf("engine initalized\n");
   lwm2m_security_init();
+printf("sec initalized\n");
   lwm2m_server_init();
+printf("serv initalized\n");
   /* lwm2m_software_init(); */
   lwm2m_device_init();
+printf("dev initalized\n");
   ipso_temperature_init();
+printf("temp initalized\n");
 #if PLATFORM_HAS_BUTTON
   ipso_button_init();
+printf("button initalized\n");
 #endif
 #if PLATFORM_HAS_LEDS
   ipso_leds_control_init();
+printf("leds initalized\n");
 #endif
 #ifdef PLATFORM_POWER_CONTROL
   ipso_power_control_init();
+printf("pwrctl initalized\n");
 #endif
 
 }

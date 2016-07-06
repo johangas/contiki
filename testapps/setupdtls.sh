@@ -1,17 +1,18 @@
 #Compile and flash
 #Make requires correct directory
-export WITH_DTLS=1
+IPSO=1
+DTLS=1
 
-cd dtls-authority
+cd authority
 make erase TARGET=nrf52dk NRF52_JLINK_SN=682049342
 make softdevice.flash TARGET=nrf52dk NRF52_JLINK_SN=682049342
-make authority.flash TARGET=nrf52dk NRF52_JLINK_SN=682049342
+make authority.flash TARGET=nrf52dk NRF52_JLINK_SN=682049342 WITH_IPSO=IPSO WITH_DTLS=DTLS
 cd ..
 
-cd dtls-keypad
+cd keypad
 make erase TARGET=nrf52dk NRF52_JLINK_SN=682531037
 make softdevice.flash TARGET=nrf52dk NRF52_JLINK_SN=682531037
-make keypad.flash TARGET=nrf52dk ADDR=2001:db8::225:40ff:fef0:8bf0 NRF52_JLINK_SN=682531037
+make keypad.flash TARGET=nrf52dk ADDR=2001:db8::225:40ff:fef0:8bf0 NRF52_JLINK_SN=682531037 WITH_IPSO=IPSO WITH_DTLS=DTLS
 cd ..
 
 #setup bluetooth driver

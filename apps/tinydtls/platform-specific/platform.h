@@ -45,6 +45,11 @@
 #  include "platform-specific/config-cc2538dk.h"
 #endif /* CONTIKI_TARGET_CC2538DK */
 
+#ifdef CONTIKI_TARGET_FELICIA
+#define CONTIKI_TARGET_CC2538DK 1
+#  include "platform-specific/config-cc2538dk.h"
+#endif /* CONTIKI_TARGET_CC2538DK */
+
 #ifdef CONTIKI_TARGET_WISMOTE
 #  include "platform-specific/config-wismote.h"
 #endif /* CONTIKI_TARGET_WISMOTE */
@@ -53,13 +58,13 @@
 #  include "platform-specific/config-sky.h"
 #endif /* CONTIKI_TARGET_SKY */
 
-#ifdef CONTIKI_TARGET_MINIMAL_NET
-#  include "platform-specific/config-minimal-net.h"
-#endif /* CONTIKI_TARGET_MINIMAL_NET */
-
 #ifdef CONTIKI_TARGET_NRF52DK
 #  include "platform-specific/config-nrf52dk.h"
 #endif /* CONTIKI_TARGET_NRF52DK */
+
+#ifdef CONTIKI_TARGET_MINIMAL_NET
+#  include "platform-specific/config-minimal-net.h"
+#endif /* CONTIKI_TARGET_MINIMAL_NET */
 
 #ifdef CONTIKI_TARGET_NATIVE
 #  include "platform-specific/config-native.h"

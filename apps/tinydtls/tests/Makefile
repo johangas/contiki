@@ -30,7 +30,7 @@ VERSION:=0.8.2
 SHELL = /bin/sh
 MKDIR = mkdir
 
-abs_builddir = /home/johan/thesis/tinydtls/netcontiki-dev-master-m3-scalability/apps/tinydtls/tests
+abs_builddir = /home/johan/thesis/tinydtls/contiki/apps/tinydtls/tests
 top_builddir = ..
 top_srcdir:= ..
 
