@@ -57,6 +57,9 @@
 #include "app_error.h"
 #include "iot_defines.h"
 #include "ble-core.h"
+#include "net/linkaddr.h"
+#include "net/packetbuf.h"
+
 
 #define DEBUG 1
 #if DEBUG
@@ -230,6 +233,7 @@ int scompare(uint8_t *str, uint8_t *payload) {
 }
 
 #endif
+/*
 static void reverse_addr(ble_gap_addr_t *addr) {
 	ble_gap_addr_t t = *addr;
 	t.addr[0] = addr->addr[5];
@@ -241,6 +245,7 @@ static void reverse_addr(ble_gap_addr_t *addr) {
 	t.addr_type = addr->addr_type;
 	addr = &t;
 }
+*/
 /*---------------------------------------------------------------------------*/
 /**
  * \brief Function for handling the Application's BLE Stack events.
@@ -250,18 +255,14 @@ static void on_ble_evt(ble_evt_t *p_ble_evt) {
 
 	switch (p_ble_evt->header.evt_id) {
 	case BLE_GAP_EVT_CONNECTED:
-		PRINTF("ble-core: connected [handle:%d, peer: ",
-				p_ble_evt->evt.gap_evt.conn_handle);
-
-		ble_gap_addr_print(
-				&(p_ble_evt->evt.gap_evt.params.connected.peer_addr));
+		PRINTF("ble-core: connected [handle:%d, peer: ", p_ble_evt->evt.gap_evt.conn_handle);
+		ble_gap_addr_print(&(p_ble_evt->evt.gap_evt.params.connected.peer_addr));
 		PRINTF("]\n");
-		ble_gap_addr_print(&(p_ble_evt->evt.gap_evt.params.connected.own_addr));
-		PRINTF("\n");
-		sd_ble_gap_rssi_start(p_ble_evt->evt.gap_evt.conn_handle,
-				BLE_GAP_RSSI_THRESHOLD_INVALID, 0);
+
+		sd_ble_gap_rssi_start(p_ble_evt->evt.gap_evt.conn_handle, BLE_GAP_RSSI_THRESHOLD_INVALID, 0);
+
 #if WITH_MASTER
-		ble_ipsp_handle_t ipsp_handle = {p_ble_evt->evt.gap_evt.conn_handle, 0};
+		ble_ipsp_handle_t ipsp_handle = {p_ble_evt->evt.gap_evt.conn_handle, 0x23};
 		//ble_mac_interface_add(peer, p_ble_evt->evt.gap_evt.conn_handle);
 		ble_ipsp_connect(&ipsp_handle);
 #endif
@@ -283,7 +284,7 @@ static void on_ble_evt(ble_evt_t *p_ble_evt) {
 			//PRINTF("ERR: %ld", err);
 
 			if (err != NRF_SUCCESS)
-			err = parse_adv_report(BLE_GAP_AD_TYPE_16BIT_SERVICE_UUID_COMPLETE, &data, &type);
+				err = parse_adv_report(BLE_GAP_AD_TYPE_16BIT_SERVICE_UUID_COMPLETE, &data, &type);
 
 			if(err == NRF_SUCCESS)
 			{
@@ -301,11 +302,13 @@ static void on_ble_evt(ble_evt_t *p_ble_evt) {
 					//actual attempt to connect
 
 					err = sd_ble_gap_connect(&p_ble_evt->evt.gap_evt.params.adv_report.peer_addr, &m_scan_param, &m_connection_param);
-
+					peer_addr_workaround(&p_ble_evt->evt.gap_evt.params.adv_report.peer_addr);
 					if(err != NRF_SUCCESS)
 					PRINTF("ble-core: Connection failed - %ld\n", err);
 					if (err == NRF_SUCCESS) {
 						//PRINTF("ble-core: Stopping scanning...");
+
+
 						err = sd_ble_gap_scan_stop();
 						if (err == NRF_SUCCESS);
 						PRINTF("ble-core: Stopped scanning.\n");
@@ -347,6 +350,7 @@ static void on_ble_evt(ble_evt_t *p_ble_evt) {
 				p_ble_evt->evt.gap_evt.conn_handle);
 
 #if WITH_MASTER
+		//Do we want this?
 		ble_scan_start();
 #else
 		ble_advertising_start();
@@ -399,14 +403,7 @@ uint8_t*
 ble_scan_start()
 {
 	uint32_t err = 1;
-	/* dont do this
-	 m_scan_param.active = 1;
-	 m_scan_param.selective = 0;
-	 m_scan_param.interval = 0x8;
-	 m_scan_param.window = 0x10;
-	 m_scan_param.p_whitelist = NULL; //no whitelist
-	 m_scan_param.timeout = 0x0;
-	 */
+
 	(void) sd_ble_gap_scan_stop();
 	sd_ble_gap_adv_stop();
 	PRINTF("ble-core: starting lescan\n");

@@ -45,7 +45,7 @@
 #include "er-coap.h"
 #include "er-coap-transactions.h"
 
-#define DEBUG 1
+#define DEBUG 0
 #if DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
@@ -428,7 +428,7 @@ coap_send_message(coap_context_t *coap_ctx,
                   uip_ipaddr_t *addr, uint16_t port,
                   const uint8_t *data, uint16_t length)
 {
-	#if WITH_DTLS
+#if WITH_DTLS
   if(coap_ctx != COAP_CONTEXT_NONE) {
     
     coap_context_send_message(coap_ctx, addr, port, data, length);

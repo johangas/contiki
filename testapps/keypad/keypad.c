@@ -19,7 +19,7 @@ Written by Johan Gasslander, master thesis worker at SICS ICT Stockholm
 #include "dev/leds.h"
 #include "uip.h"
 #include "er-coap-observe-client.h"
-#include "net/rpl/rpl.h"
+//#include "net/rpl/rpl.h"
 
 #if WITH_MASTER
 #include "ble-core.h"
@@ -39,8 +39,10 @@ Written by Johan Gasslander, master thesis worker at SICS ICT Stockholm
 #define COAP_PORT 	UIP_HTONS(COAP_DEFAULT_PORT)
 #define REMOTE_PORT     UIP_HTONS(COAP_DEFAULT_PORT)
 #endif
-
+#define DEBUG 1
 #define DOOR_OBS_URI "doors/door"
+
+
 
 //Process handling
 PROCESS(keypad_process, "keypad process");
@@ -129,7 +131,8 @@ PROCESS_THREAD(door_process, ev, data){
 	*resetreas_reg = 0xF00F;
 #endif
 	uiplib_ipaddrconv(ADDR, authority_addr);
-	printf("Server addr: %s\n", ADDR);
+	uint8_t ad[16] = {0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0x02, 0x25, 0x40, 0xff, 0xfe, 0xf0, 0x8b, 0xf0};
+	memcpy(authority_addr->u8, ad, 16);
 //	coap_init_engine();
 	rest_init_engine();
 #if WITH_IPSO
@@ -161,7 +164,7 @@ PROCESS_THREAD(keypad_process, ev, data){
 	while(1){
 		PROCESS_WAIT_EVENT();
 		//different button send different codes
-		if (data == &button_1 && button_1.value(BUTTON_SENSOR_VALUE_STATE) == 0) {			
+		if (data == &button_1 && button_1.value(BUTTON_SENSOR_VALUE_STATE) == 0) {
 			//POST auth1
 			printf("Button 1\n");
 			starttimer();
@@ -171,7 +174,6 @@ PROCESS_THREAD(keypad_process, ev, data){
 			coap_set_header_uri_path(request, "/doors/door");
 			coap_set_payload(request, (uint8_t *) "4711", 4);
 			COAP_BLOCKING_REQUEST(&authority_addr[0], REMOTE_PORT, request, response);
-			
 		}
 		if (data == &button_2 && button_2.value(BUTTON_SENSOR_VALUE_STATE) == 0) {
 			//POST auth2 - not authorized
@@ -187,7 +189,6 @@ PROCESS_THREAD(keypad_process, ev, data){
 
 		}
 		#if WITH_MASTER
-
 		if (data == &button_4 && button_4.value(BUTTON_SENSOR_VALUE_STATE) == 0) {
 			
 			printf("Started scanning.\n");

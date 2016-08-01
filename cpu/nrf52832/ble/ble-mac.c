@@ -99,6 +99,8 @@ struct {
 static mac_callback_t mac_sent_cb;
 static void *mac_sent_ptr;
 
+ble_gap_addr_t peer;
+
 /*---------------------------------------------------------------------------*/
 /**
  * \brief Lookup interface by IPSP connection.
@@ -181,14 +183,13 @@ static uint32_t ble_mac_ipsp_evt_handler_irq(ble_ipsp_handle_t *p_handle,
 
 		PRINTF("ble-mac: channel connected\n");
 
-		IPV6_EUI64_CREATE_FROM_EUI48(peer_addr.identifier,
-				p_evt->evt_param->params.ch_conn_request.peer_addr.addr,
-				p_evt->evt_param->params.ch_conn_request.peer_addr.addr_type);
+		IPV6_EUI64_CREATE_FROM_EUI48(peer_addr.identifier, peer.addr, p_evt->evt_param->params.ch_conn_request.peer_addr.addr_type);
 
 		p_instance = ble_mac_interface_add(&peer_addr, p_handle);
 
 		if (p_instance != NULL) {
 			PRINTF("ble-mac: added new IPSP interface\n");
+			packetbuf_set_addr(PACKETBUF_ADDR_RECEIVER, (const linkaddr_t *) peer_addr.identifier);
 		} else {
 			PRINTF("ble-mac: cannot add new interface. Table is full\n");
 			ble_ipsp_disconnect(p_handle);
@@ -242,6 +243,12 @@ static uint32_t ble_mac_ipsp_evt_handler_irq(ble_ipsp_handle_t *p_handle,
 	}
 	return retval;
 }
+
+void peer_addr_workaround(ble_gap_addr_t* a){
+	peer = *a;
+	return;
+}
+
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(ble_ipsp_process, ev, data) {
 	PROCESS_BEGIN();
@@ -304,24 +311,23 @@ PRINTF("ble-mac: send packet\n");
 
 mac_sent_cb = sent;
 mac_sent_ptr = ptr;
-//ble_ipsp_send(&interfaces[0].handle, packetbuf_dataptr(), packetbuf_datalen());
-
 dest = packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
 
 if (linkaddr_cmp(dest, &linkaddr_null)) {
 	for (i = 0; i < BLE_MAC_MAX_INTERFACE_NUM; i++) {
-		if (interfaces[i].handle.cid != 0
-				&& interfaces[i].handle.conn_handle != 0) {
+		if (interfaces[i].handle.cid != 0 && interfaces[i].handle.conn_handle != 0) {
 		    PRINTF("ble-mac: Calling send to peer. Interface found: %d\n", interfaces[i].handle.conn_handle);
 			ret = send_to_peer(&interfaces[i].handle);
 			watchdog_periodic();
 		}
 	}
-} else if ((handle = find_handle(dest)) != NULL) {
-    PRINTF("ble-mac: Calling send to peer.\n");
-	ret = send_to_peer(handle);
+} else if((handle = find_handle(dest)) != NULL) {
+    PRINTF("ble-mac: Calling send to peer on found handle %d.\n", handle->cid);
+    ret = send_to_peer(handle);
 } else {
-	PRINTF("ble-mac: no connection found for peer\n");
+	PRINTF("ble-mac: No connection found for peer. Using default handle. ");
+    //FIXME: HACK. This should be found by the above if-statement.
+	ret = send_to_peer(&interfaces[0].handle);
 }
 
 if (ret) {
@@ -354,7 +360,7 @@ static void init(void) {
 // Initialize IPSP service
 uint32_t err_code;
 ble_ipsp_init_t ipsp_init_params;
-
+PRINTF("ble-mac: init.\n");
 memset(&ipsp_init_params, 0, sizeof(ipsp_init_params));
 ipsp_init_params.evt_handler = ble_mac_ipsp_evt_handler_irq;
 err_code = ble_ipsp_init(&ipsp_init_params);

@@ -71,7 +71,7 @@
 
 #include <stdio.h>
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_NONE
 #include "net/ip/uip-debug.h"
 #if DEBUG
 /* PRINTFI and PRINTFO are defined for input and output to debug one without changing the timing of the other */
@@ -1325,7 +1325,9 @@ output(const uip_lladdr_t *localdest)
    * broadcast packet.
    */
   if(localdest == NULL) {
-    linkaddr_copy(&dest, &linkaddr_null);
+    //linkaddr_copy(&dest, &linkaddr_null);
+	  linkaddr_t yes = {{0xF0, 0x8b, 0xF0, 0x40, 0x25, 0x00}};
+	  linkaddr_copy(&dest, &yes);
   } else {
     linkaddr_copy(&dest, (const linkaddr_t *)localdest);
   }

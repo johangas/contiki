@@ -39,7 +39,7 @@
 #include "er-coap-engine.h"
 #include <string.h>
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_NONE
 #include "net/ip/uip-debug.h"
 
 #ifdef WITH_DTLS

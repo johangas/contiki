@@ -40,6 +40,7 @@
 #ifndef CONTIKI_CONF_H
 #define CONTIKI_CONF_H
 
+
 #include <stdint.h>
 /*---------------------------------------------------------------------------*/
 /* Include Project Specific conf */
@@ -107,10 +108,17 @@
 #define UIP_CONF_BUFFER_SIZE              1280
 #endif
 
+#if WITH_MASTER
 /* ND and Routing */
 #define UIP_CONF_ROUTER                      1 /**< BLE master role. > */
 #define UIP_CONF_ND6_SEND_NA                 1
 #define UIP_CONF_IP_FORWARD                  0 /**< No packet forwarding. */
+#else
+/* ND and Routing */
+#define UIP_CONF_ROUTER                      0 /**< BLE master role. > */
+#define UIP_CONF_ND6_SEND_NA                 0
+#define UIP_CONF_IP_FORWARD                  0 /**< No packet forwarding. */
+#endif
 
 #define UIP_CONF_ND6_REACHABLE_TIME     600000
 #define UIP_CONF_ND6_RETRANS_TIMER       10000

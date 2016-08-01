@@ -4,6 +4,7 @@ cd authority
 make erase TARGET=nrf52dk NRF52_JLINK_SN=682049342
 make softdevice.flash TARGET=nrf52dk NRF52_JLINK_SN=682049342
 make authority.flash TARGET=nrf52dk NRF52_USE_RTT=1 NRF52_JLINK_SN=682049342
+#make authority.flash TARGET=nrf52dk NRF52_JLINK_SN=682049342
 cd ..
 
 cd keypad

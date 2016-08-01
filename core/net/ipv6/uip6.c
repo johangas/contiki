@@ -922,6 +922,7 @@ ext_hdr_options_process(void)
             if(uip_is_addr_mcast(&UIP_IP_BUF->destipaddr)) {
               return 1;
             }
+            break;
           case 0x80:
             uip_icmp6_error_output(ICMP6_PARAM_PROB, ICMP6_PARAMPROB_OPTION,
                              (uint32_t)UIP_IPH_LEN + uip_ext_len + uip_ext_opt_offset);

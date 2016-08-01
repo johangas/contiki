@@ -1,5 +1,5 @@
 CONTIKI_PROJECT = keypad
-APPS=servreg-hack
+#APPS=servreg-hack
 CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 NRF52_SDK_ROOT=/home/johan/Downloads/nrf5_iot_sdk_3288530
 
@@ -9,7 +9,7 @@ CONTIKI_WITH_IPV6 = 1
 CFLAGS += -DUIP_CONF_IPV6
 CFLAGS += -DWITH_MASTER=1
 WITH_MASTER=1
-UIP_CONF_ROUTER = 1
+UIP_CONF_ROUTER = 0
 
 
 CFLAGS += -DADDR=\"$(ADDR)\"
@@ -21,7 +21,7 @@ PROJECTDIRS += $(REST_RESOURCES_DIR)
 PROJECT_SOURCEFILES += $(REST_RESOURCES_FILES)
 
 # linker optimizations
-SMALL=0
+SMALL=1
 
 # REST Engine shall use Erbium CoAP implementation
 APPS += er-coap

@@ -47,13 +47,14 @@
 #define DEV_BLE_H_
 
 #include <stdint.h>
+#include <ble_gap.h>
 
 void ble_stack_init(void);
 void ble_advertising_init(const char *name);
 void ble_advertising_start(void);
 void ble_get_mac(uint8_t addr[8]);
 uint8_t* ble_scan_start();
-
+void peer_addr_workaround(ble_gap_addr_t* a);
 #endif /* DEV_BLE_H_ */
 
 /**

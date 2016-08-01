@@ -76,7 +76,7 @@
 #include "lib/random.h"
 
 /*------------------------------------------------------------------*/
-#define DEBUG 0
+#define DEBUG 1
 #include "net/ip/uip-debug.h"
 
 #if UIP_LOGGING
@@ -123,6 +123,12 @@ static uip_ds6_nbr_t *nbr; /**  Pointer to a nbr cache entry*/
 static uip_ds6_defrt_t *defrt; /**  Pointer to a router list entry */
 static uip_ds6_addr_t *addr; /**  Pointer to an interface address */
 #endif /* UIP_ND6_SEND_NA || UIP_ND6_SEND_RA || !UIP_CONF_ROUTER */
+
+//#if UIP_ND6_SEND_NA
+//static uip_ds6_defrt_t *defrt; /**  Pointer to a router list entry */
+//static uip_ds6_addr_t *addr; /**  Pointer to an interface address */
+//#endif
+
 
 #if !UIP_CONF_ROUTER            // TBD see if we move it to ra_input
 static uip_nd6_opt_prefix_info *nd6_opt_prefix_info; /**  Pointer to prefix information option in uip_buf */
