@@ -1,2 +1,0 @@
-added config-nrf52dk.h and in platform.h added CONTIKI_TARGET_NRF52DK
-dito for native
